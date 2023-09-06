@@ -41,8 +41,8 @@ if __name__ == "__main__":
 
     # Check to see if a non-default dask temporary directory is requested
     # If so, set it using dask config
-    if ~pd.isna(dask_parameters.dask_temp_directory):
-        dask.config.set({'temporary_directory': f'{dask_parameters.dask_temp_directory[0]}'})
+    if ~pd.isna(dask_settings.dask_temp_directory):
+        dask.config.set({'temporary_directory': f'{dask_settings.dask_temp_directory[0]}'})
 
     with LocalCluster(processes=True, threads_per_worker=1) as cluster, Client(cluster) as client:
         # Setting up dask.Client so that I can ssh into the dashboard
