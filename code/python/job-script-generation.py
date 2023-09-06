@@ -93,7 +93,14 @@ mail_type = slurm_params[slurm_params['parameter'] == 'mail-type']['value'].valu
 # Create bash file for submitting all jobs through the slurm scheduler
 # TODO: Add every #SBATCH option provided, and none that aren't
 with open(os.path.join(intermediate_path, job_file_name), 'w') as job_file:
-    job_file.writelines(f"#!/bin/bash\n\n\n")
+    job_file.writelines(f"#!/bin/bash\n\n")
+    job_file.writelines(f"#=================================================\n")
+    job_file.writelines(f"# This is a bash script for submitting your jobs to the slurm scheduler.\n")
+    job_file.writelines(f"# Feel free to edit this file as you see fit.\n")
+    job_file.writelines(f"# To run, navigate to the root directory of the repo and run:\n")
+    job_file.writelines(f"#     sbatch intermediate/{job_file_name}\n")
+    job_file.writelines(f"# Log file(s) will be created in the hidden .out/ directory called {file_name}_<job_number>.out\n")
+    job_file.writelines(f"#=================================================\n\n")
     job_file.writelines('# Slurm Settings\n')
     job_file.writelines(f"#SBATCH --account={account}\n")
     job_file.writelines(f"#SBATCH --partition={partition}\n")
