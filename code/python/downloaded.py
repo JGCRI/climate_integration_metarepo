@@ -18,7 +18,7 @@ import xarray as xr  # Reading and manipulating NetCDF data
 from dask.distributed import (Client, LocalCluster)  # Using Dask in parallel
 
 # CONSTANTS
-INPUT_PATH = '../../input'
+INPUT_PATH = 'input'
 
 # Global paths and file names 
 temp_intermediate_dir = None
@@ -155,11 +155,6 @@ def load_ba_data(run_object):
     sim_application_data_pattern = f'{run_object.Variable}_day_{run_object.ESM}_{run_object.Scenario}_{run_object.Ensemble}_*.nc'
     sim_reference_data_pattern = f'{run_object.Variable}_day_{run_object.ESM}_historical_{run_object.Ensemble}_*.nc'
     obs_reference_data_pattern = f'{run_object.Variable}_*.nc'
-
-    # For testing purposes print the data files attempted to open
-    print(f'Sim Application: {os.path.join(input_sim_data_path, sim_application_data_pattern)}')
-    print(f'Sim Reference: {os.path.join(input_sim_data_path, sim_reference_data_pattern)}')
-    print(f'Obs Reference: {os.path.join(input_ref_data_path, obs_reference_data_pattern)}')
 
     # Open data
     sim_application_data = xr.open_mfdataset(os.path.join(input_sim_data_path, sim_application_data_pattern), chunks={'time': time_chunk})

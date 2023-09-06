@@ -20,8 +20,8 @@ import numpy as np
 import pandas as pd
 
 # Define paths
-input_files_path = '../../input'
-intermediate_path = '../../intermediate'
+input_files_path = 'input'
+intermediate_path = 'intermediate'
 # TODO: Allow for this to be an argument passed in
 run_manager_file = str(sys.argv[1])
 # run_manager_file = 'run_manager.csv'
@@ -112,8 +112,7 @@ with open(os.path.join(intermediate_path, job_file_name), 'w') as job_file:
     job_file.writelines('# Timing\n')
     job_file.writelines('start=`date +%s.%N`\n\n')
     job_file.writelines('# Run script\n')
-    job_file.writelines('cd ../code/python/\n')
-    job_file.writelines(f"python main.py $SLURM_ARRAY_TASK_ID {file_name}_explicit_list.csv \n\n")
+    job_file.writelines(f"python code/python/main.py $SLURM_ARRAY_TASK_ID {file_name}_explicit_list.csv \n\n")
     job_file.writelines('# End timing and print runtime\n')
     job_file.writelines('end=`date +%s.$N`\n')
     job_file.writelines('runtime=$( echo "($end - $start) / 60" | bc -l )\n')

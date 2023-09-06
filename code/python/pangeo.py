@@ -21,7 +21,7 @@ from dask.distributed import (Client, LocalCluster,  # Using Dask in parallel
                               progress)
 
 # CONSTANTS
-INPUT_PATH = '../../input'
+INPUT_PATH = 'input'
 
 # Global paths and file names 
 temp_download_dir = None
