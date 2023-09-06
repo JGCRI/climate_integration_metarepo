@@ -102,7 +102,7 @@ with open(os.path.join(intermediate_path, job_file_name), 'w') as job_file:
     job_file.writelines(f"#SBATCH --mail-type={mail_type}\n")
     job_file.writelines(f"#SBATCH --mail-user={email}\n")
     job_file.writelines(f"#SBATCH --output=\".out/%x_%j.out\"\n")
-    job_file.writelines(f"#SBATCH --array=1-{mesh_df.shape[0]}%{max_concurrent}\n\n\n")
+    job_file.writelines(f"#SBATCH --array=0-{mesh_df.shape[0]-1}%{max_concurrent}\n\n\n")
     job_file.writelines('# Load Modules\n')
     job_file.writelines('module load gcc/11.2.0\n')
     job_file.writelines('module load python/miniconda3.9\n')

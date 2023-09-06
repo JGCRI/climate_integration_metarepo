@@ -82,6 +82,11 @@ def basd_pangeo(run_object):
     if reset_chunksizes:
         encoding['chunksizes'] = utils.reset_chunk_sizes(encoding['chunksizes'], sim_application_data.dims)
 
+    # Use global path/file names
+    global temp_intermediate_dir, output_ba_path, output_basd_path
+    global output_day_ba_file_name, output_mon_ba_file_name, output_day_basd_file_name, output_mon_basd_file_name
+    global input_ref_data_path
+
     # 9. Run Bias Adjustment
     # Initializing Bias Adjustment
     ba = basd.init_bias_adjustment(
