@@ -10,6 +10,7 @@ import os
 import socket
 import sys
 
+import dask
 from dask.distributed import (Client, LocalCluster)
 import numpy as np
 import pandas as pd
@@ -18,6 +19,7 @@ if __name__ == "__main__":
 
 # Paths =======================================================================================================
     intermediate_path = 'intermediate'
+    input_path = 'input'
 
 # Get Run Details =============================================================================================
 
@@ -27,6 +29,8 @@ if __name__ == "__main__":
     task_list = str(sys.argv[2])
     # Extract task details
     task_details = pd.read_csv(os.path.join(intermediate_path, task_list)).iloc[task_id]
+    # Extract Dask settings
+    dask_settings = pd.read_csv(os.path.join(input_path, 'dask_parameters.csv'))
 
 # Check if using Pangeo =======================================================================================
 
@@ -34,6 +38,11 @@ if __name__ == "__main__":
     using_pangeo = pd.isna(task_details.ESM_Input_Location)
     # Boolean will be true when using STITCHED data
     using_stitches = task_details.stitched
+
+    # Check to see if a non-default dask temporary directory is requested
+    # If so, set it using dask config
+    if ~pd.isna(dask_parameters.dask_temp_directory):
+        dask.config.set({'temporary_directory': f'{dask_parameters.dask_temp_directory[0]}'})
 
     with LocalCluster(processes=True, threads_per_worker=1) as cluster, Client(cluster) as client:
         # Setting up dask.Client so that I can ssh into the dashboard
