@@ -44,6 +44,7 @@ target_periods = remove_nas(run_manager_df['target_period'].values)
 application_periods = remove_nas(run_manager_df['application_period'].values)
 daily = remove_nas(run_manager_df['daily'].values)
 monthly = remove_nas(run_manager_df['monthly'].values)
+stitched = remove_nas(run_manager_df['stitched'].values)
 
 # If you want to use BASD for tasmin or tasmax, need to use tas, tasrange and tasskew to do so indirectly
 # So here we make sure to have those variables present when tasmax and/or tasmin is present,
@@ -51,18 +52,33 @@ monthly = remove_nas(run_manager_df['monthly'].values)
 if ('tasmax' in variables) or ('tasmin' in variables):
     variables = np.union1d(np.setdiff1d(variables, ['tasmax', 'tasmin']), ['tas', 'tasrange', 'tasskew'])
 
-# Get all combinations (as an array, each row represents a single job)
-mesh_array = np.array(np.meshgrid(esms, 
+# If no ensembles given (this happens when we're using STITCHED data)
+if len(ensembles) == 0:
+    # Get all combinations (as an array, each row represents a single job)
+    mesh_array = np.array(np.meshgrid(esms, 
+                                    variables, 
+                                    scenarios, 
+                                    ref_datasets, 
+                                    target_periods, 
+                                    application_periods)).T.reshape(-1,6)
+    # Convert to pandas DataFrame and add back in columns that didn't need extra enumeration
+    mesh_df = pd.DataFrame(mesh_array, columns = ['ESM', 'Variable', 'Scenario', 'Reference_Dataset',
+                                              'target_period', 'application_period'])
+# When using ensemble members (using standard CMIP data)
+else:
+    # Get all combinations (as an array, each row represents a single job)
+    mesh_array = np.array(np.meshgrid(esms, 
                                   variables, 
                                   scenarios, 
                                   ensembles,
                                   ref_datasets, 
                                   target_periods, 
                                   application_periods)).T.reshape(-1,7)
-
-# Convert to pandas DataFrame and add back in columns that didn't need extra enumeration
-mesh_df = pd.DataFrame(mesh_array, columns = ['ESM', 'Variable', 'Scenario', 'Ensemble', 'Reference_Dataset',
+    # Convert to pandas DataFrame and add back in columns that didn't need extra enumeration
+    mesh_df = pd.DataFrame(mesh_array, columns = ['ESM', 'Variable', 'Scenario', 'Ensemble', 'Reference_Dataset',
                                               'target_period', 'application_period'])
+
+
 # Merge in esm input locations
 mesh_df = mesh_df.merge(run_manager_df[['ESM', 'ESM_Input_Location']], on='ESM', how='inner')
 # Merge in reference dataset input locations
@@ -72,6 +88,7 @@ mesh_df = mesh_df.merge(run_manager_df[['ESM', 'Output_Location']], on='ESM', ho
 # Add daily and monthly bools
 mesh_df['daily'] = daily[0]
 mesh_df['monthly'] = monthly[0]
+mesh_df['stitched'] = stitched[0]
 
 # Get file name information for this run request
 file_name = os.path.splitext(run_manager_file)[0]

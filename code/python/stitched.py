@@ -37,9 +37,9 @@ lat_chunk = None
 lon_chunk = None
 
 # Function to manage steps for running bias adjustment and downscaling using data accessed from Pangeo.
-def basd_downloaded(run_object):
+def basd_stitches(run_object):
     """
-    Function to manage steps for running bias adjustment and downscaling using data accessed from Pangeo.
+    Function to manage steps for running bias adjustment and downscaling using data from STITCHES saved locally.
     """
     # 1. Name output files and paths
     set_names(run_object)
@@ -152,23 +152,28 @@ def load_ba_data(run_object):
     Function that loads in datasets and trims to reference and application periods, and drops extra variables in the dataset
     """
     # File name patterns
-    sim_application_data_pattern = f'{run_object.Variable}_day_{run_object.ESM}_{run_object.Scenario}_{run_object.Ensemble}_*.nc'
-    sim_reference_data_pattern = f'{run_object.Variable}_day_{run_object.ESM}_historical_{run_object.Ensemble}_*.nc'
+    sim_data_pattern = f'stitched_{run_object.ESM}_{run_object.Variable}_{run_object.Scenario}.nc'
     obs_reference_data_pattern = f'{run_object.Variable}_*.nc'
 
     # Open data
-    sim_application_data = xr.open_mfdataset(os.path.join(input_sim_data_path, sim_application_data_pattern), chunks={'time': time_chunk})
-    sim_reference_data = xr.open_mfdataset(os.path.join(input_sim_data_path, sim_reference_data_pattern), chunks={'time': time_chunk})
+    sim_data = xr.open_mfdataset(os.path.join(input_sim_data_path, sim_data_pattern), chunks={'time': time_chunk})
     obs_reference_data = xr.open_mfdataset(os.path.join(input_ref_data_path, obs_reference_data_pattern), chunks={'time': time_chunk})
+
+    # Split simulation data into target and application periods
+    sim_application_data = sim_data
+    sim_reference_data = sim_data
 
     # Get application and target periods
     application_start_year, application_end_year = str.split(run_object.application_period, '-')
     target_start_year, target_end_year = str.split(run_object.target_period, '-')
 
-    # Subsetting desired time
-    obs_reference_data = obs_reference_data.sel(time = slice(f'{target_start_year}', f'{target_end_year}'))
-    sim_reference_data = sim_reference_data.sel(time = slice(f'{target_start_year}', f'{target_end_year}'))
-    sim_application_data = sim_application_data.sel(time = slice(f'{application_start_year}', f'{application_end_year}'))
+    # Sub-setting desired time
+    obs_reference_data = obs_reference_data.sel(time = slice(f'{target_start_year}', f'{target_end_year}')).copy()
+    sim_application_data = sim_data.sel(time = slice(f'{application_start_year}', f'{application_end_year}')).copy()
+    sim_reference_data = sim_data.sel(time = slice(f'{target_start_year}', f'{target_end_year}')).copy()
+
+    # Close full time series simulation data
+    sim_data.close()
 
     # Drop unwanted vars
     obs_reference_data = obs_reference_data.drop([x for x in list(obs_reference_data.coords) if x not in ['time', 'lat', 'lon']])
@@ -195,7 +200,7 @@ def set_names(run_object):
     # Temporary intermediate results directory
     temp_intermediate_dir = os.path.join(run_object.Output_Location, run_object.Reference_Dataset, 
                                          run_object.ESM, run_object.Scenario, 
-                                         f'{run_object.Variable}_{run_object.Ensemble}_temp_intermediate')
+                                         f'{run_object.Variable}_STITCHES_temp_intermediate')
 
     # Full output path for bias adjusted data
     output_ba_path = os.path.join(run_object.Output_Location, run_object.Reference_Dataset,
@@ -205,16 +210,16 @@ def set_names(run_object):
     start, end = str.split(run_object.application_period, '-')
 
     # Output file name for daily and monthly bias adjusted data
-    output_day_ba_file_name = f'{run_object.ESM}_{run_object.Ensemble}_{run_object.Reference_Dataset}_{run_object.Scenario}_{run_object.Variable}_global_daily_{start}_{end}.nc'
-    output_mon_ba_file_name = f'{run_object.ESM}_{run_object.Ensemble}_{run_object.Reference_Dataset}_{run_object.Scenario}_{run_object.Variable}_global_monthly_{start}_{end}.nc'
+    output_day_ba_file_name = f'{run_object.ESM}_STITCHES_{run_object.Reference_Dataset}_{run_object.Scenario}_{run_object.Variable}_global_daily_{start}_{end}.nc'
+    output_mon_ba_file_name = f'{run_object.ESM}_STITCHES_{run_object.Reference_Dataset}_{run_object.Scenario}_{run_object.Variable}_global_monthly_{start}_{end}.nc'
     
     # Full output path for downscaled data
     output_basd_path = os.path.join(run_object.Output_Location, run_object.Reference_Dataset,
                                     run_object.ESM, run_object.Scenario, 'basd')
     
     # Output file name for daily and monthly downscaled data
-    output_day_basd_file_name = f'{run_object.ESM}_{run_object.Ensemble}_{run_object.Reference_Dataset}_{run_object.Scenario}_{run_object.Variable}_global_daily_{start}_{end}.nc'
-    output_mon_basd_file_name = f'{run_object.ESM}_{run_object.Ensemble}_{run_object.Reference_Dataset}_{run_object.Scenario}_{run_object.Variable}_global_monthly_{start}_{end}.nc'
+    output_day_basd_file_name = f'{run_object.ESM}_STITCHES_{run_object.Reference_Dataset}_{run_object.Scenario}_{run_object.Variable}_global_daily_{start}_{end}.nc'
+    output_mon_basd_file_name = f'{run_object.ESM}_STITCHES_{run_object.Reference_Dataset}_{run_object.Scenario}_{run_object.Variable}_global_monthly_{start}_{end}.nc'
     
     # Input location for observational reference dataset
     input_ref_data_path = run_object.Reference_Input_Location

@@ -4,6 +4,7 @@ This file manages which scripts are used for each job
 
 from pangeo import basd_pangeo
 from downloaded import basd_downloaded
+from stitched import basd_stitches
 
 import os
 import socket
@@ -31,6 +32,8 @@ if __name__ == "__main__":
 
     # Boolean will be true when no input location is given
     using_pangeo = pd.isna(task_details.ESM_Input_Location)
+    # Boolean will be true when using STITCHED data
+    using_stitches = task_details.stitched
 
     with LocalCluster(processes=True, threads_per_worker=1) as cluster, Client(cluster) as client:
         # Setting up dask.Client so that I can ssh into the dashboard
@@ -44,6 +47,9 @@ if __name__ == "__main__":
         if using_pangeo:
             # Run pangeo script
             basd_pangeo(task_details)
+        elif using_stitches:
+            # Run stitches script
+            basd_stitches(task_details)
         else:
             # Run downloaded data script
             basd_downloaded(task_details)

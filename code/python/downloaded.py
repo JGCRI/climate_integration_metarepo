@@ -39,7 +39,7 @@ lon_chunk = None
 # Function to manage steps for running bias adjustment and downscaling using data accessed from Pangeo.
 def basd_downloaded(run_object):
     """
-    Function to manage steps for running bias adjustment and downscaling using data accessed from Pangeo.
+    Function to manage steps for running bias adjustment and downscaling using data downloaded locally.
     """
     # 1. Name output files and paths
     set_names(run_object)
