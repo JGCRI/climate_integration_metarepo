@@ -1,0 +1,13 @@
+﻿ESM,ESM_Input_Location,Output_Location,Reference_Dataset,Reference_Input_Location,Variable,Scenario,Ensemble,target_period,application_period,daily,monthly
+model-name,/Users/prim232/gitrepos/basd-pipeline/input/test_data/sim,/Users/prim232/gitrepos/basd-pipeline/output/test-output,obs-hist,/Users/prim232/gitrepos/basd-pipeline/input/test_data/obs,pr,scenario-name,ensemble-name,1979-2014,2065-2100,TRUE,TRUE
+,,,,,tas,,,,,,
+,,,,,hurs,,,,,,
+,,,,,sfcWind,,,,,,
+,,,,,rsds,,,,,,
+,,,,,rlds,,,,,,
+,,,,,tasrange,,,,,,
+,,,,,tasskew,,,,,,
+,,,,,ps,,,,,,
+,,,,,prsnratio,,,,,,
+,,,,,tasmin,,,,,,
+,,,,,tasmax,,,,,,
