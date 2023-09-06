@@ -19,8 +19,12 @@ def get_parameters(run_object, input_path):
     del param_dict['variable'] # Parameters object doesn't take 'variable', was only needed to filter data
 
     # Make n_iterations an integer
+    # TODO: Fix inherent type troubles from csv input
     if 'n_iterations' in param_dict:
         param_dict['n_iterations'] = int(param_dict['n_iterations'])
+    # Make halfwin_ubc an integer
+    if 'halfwin_ubc' in param_dict:
+        param_dict['halfwin_ubc'] = int(param_dict['halfwin_ubc'])
 
     # Create basd.Parameters object
     param_obj = basd.Parameters(**param_dict)

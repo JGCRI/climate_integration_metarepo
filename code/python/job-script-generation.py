@@ -91,16 +91,17 @@ email = slurm_params[slurm_params['parameter'] == 'email']['value'].values[0]
 mail_type = slurm_params[slurm_params['parameter'] == 'mail-type']['value'].values[0]
 
 # Create bash file for submitting all jobs through the slurm scheduler
+# TODO: Add every #SBATCH option provided, and none that aren't
 with open(os.path.join(intermediate_path, job_file_name), 'w') as job_file:
     job_file.writelines(f"#!/bin/bash\n\n\n")
     job_file.writelines('# Slurm Settings\n')
     job_file.writelines(f"#SBATCH --account={account}\n")
     job_file.writelines(f"#SBATCH --partition={partition}\n")
-    job_file.writelines(f"#SBATCH --job-name={job_file_name}\n")
+    job_file.writelines(f"#SBATCH --job-name={file_name}\n")
     job_file.writelines(f"#SBATCH --time={time}\n")
     job_file.writelines(f"#SBATCH --mail-type={mail_type}\n")
     job_file.writelines(f"#SBATCH --mail-user={email}\n")
-    job_file.writelines(f"#SBATCH --output=.out/{out_file_name}\n")
+    job_file.writelines(f"#SBATCH --output=\".out/%x_%j.out\"\n")
     job_file.writelines(f"#SBATCH --array=1-{mesh_df.shape[0]}%{max_concurrent}\n\n\n")
     job_file.writelines('# Load Modules\n')
     job_file.writelines('module load gcc/11.2.0\n')
@@ -111,7 +112,8 @@ with open(os.path.join(intermediate_path, job_file_name), 'w') as job_file:
     job_file.writelines('# Timing\n')
     job_file.writelines('start=`date +%s.%N`\n\n')
     job_file.writelines('# Run script\n')
-    job_file.writelines(f"python ../python/main.py $SLURM_ARRAY_TASK_ID {file_name}_explicit_list.csv \n\n")
+    job_file.writelines('cd ../code/python/\n')
+    job_file.writelines(f"python main.py $SLURM_ARRAY_TASK_ID {file_name}_explicit_list.csv \n\n")
     job_file.writelines('# End timing and print runtime\n')
     job_file.writelines('end=`date +%s.$N`\n')
     job_file.writelines('runtime=$( echo "($end - $start) / 60" | bc -l )\n')
