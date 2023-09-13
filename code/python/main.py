@@ -30,7 +30,7 @@ if __name__ == "__main__":
     # Extract task details
     task_details = pd.read_csv(os.path.join(intermediate_path, task_list)).iloc[task_id]
     # Extract Dask settings
-    dask_settings = pd.read_csv(os.path.join(input_path, 'dask_parameters.csv'))
+    dask_settings = pd.read_csv(os.path.join(input_path, 'dask_parameters.csv')).iloc[0]
 
 # Check if using Pangeo =======================================================================================
 
@@ -41,8 +41,28 @@ if __name__ == "__main__":
 
     # Check to see if a non-default dask temporary directory is requested
     # If so, set it using dask config
-    if ~pd.isna(dask_settings.dask_temp_directory):
-        dask.config.set({'temporary_directory': f'{dask_settings.dask_temp_directory[0]}'})
+    if not pd.isna(dask_settings.dask_temp_directory):
+        dask.config.set({'temporary_directory': f'{dask_settings.dask_temp_directory}'})
+
+    # Writing task details to log
+    print(f'======================================================', flush=True)
+    print(f'Task Details:', flush=True)
+    print(f'ESM: {task_details.ESM}', flush=True)
+    print(f'Variable: {task_details.Variable}', flush=True)
+    print(f'Scenario: {task_details.Scenario}', flush=True)
+    try:
+        print(f'Ensemble Member: {task_details.Ensemble}', flush=True)
+    except AttributeError:
+        pass
+    print(f'Reference Period: {task_details.target_period}', flush=True)
+    print(f'Application Period: {task_details.application_period}', flush=True)
+    if using_pangeo:
+        print('Getting Data From Pangeo', flush=True)
+    elif using_stitches:
+        print('Using STITCHED Data', flush=True)
+    else: 
+        print(f'Retrieving Data From {task_details.Reference_Input_Location}', flush=True)
+    print(f'======================================================')
 
     with LocalCluster(processes=True, threads_per_worker=1) as cluster, Client(cluster) as client:
         # Setting up dask.Client so that I can ssh into the dashboard
