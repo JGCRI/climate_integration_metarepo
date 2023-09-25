@@ -4,11 +4,13 @@ This file manages which scripts are used for each job
 
 from pangeo import basd_pangeo
 from downloaded import basd_downloaded
+from stitched import basd_stitches
 
 import os
 import socket
 import sys
 
+import dask
 from dask.distributed import (Client, LocalCluster)
 import numpy as np
 import pandas as pd
@@ -17,6 +19,7 @@ if __name__ == "__main__":
 
 # Paths =======================================================================================================
     intermediate_path = 'intermediate'
+    input_path = 'input'
 
 # Get Run Details =============================================================================================
 
@@ -26,11 +29,40 @@ if __name__ == "__main__":
     task_list = str(sys.argv[2])
     # Extract task details
     task_details = pd.read_csv(os.path.join(intermediate_path, task_list)).iloc[task_id]
+    # Extract Dask settings
+    dask_settings = pd.read_csv(os.path.join(input_path, 'dask_parameters.csv')).iloc[0]
 
 # Check if using Pangeo =======================================================================================
 
     # Boolean will be true when no input location is given
     using_pangeo = pd.isna(task_details.ESM_Input_Location)
+    # Boolean will be true when using STITCHED data
+    using_stitches = task_details.stitched
+
+    # Check to see if a non-default dask temporary directory is requested
+    # If so, set it using dask config
+    if not pd.isna(dask_settings.dask_temp_directory):
+        dask.config.set({'temporary_directory': f'{dask_settings.dask_temp_directory}'})
+
+    # Writing task details to log
+    print(f'======================================================', flush=True)
+    print(f'Task Details:', flush=True)
+    print(f'ESM: {task_details.ESM}', flush=True)
+    print(f'Variable: {task_details.Variable}', flush=True)
+    print(f'Scenario: {task_details.Scenario}', flush=True)
+    try:
+        print(f'Ensemble Member: {task_details.Ensemble}', flush=True)
+    except AttributeError:
+        pass
+    print(f'Reference Period: {task_details.target_period}', flush=True)
+    print(f'Application Period: {task_details.application_period}', flush=True)
+    if using_pangeo:
+        print('Getting Data From Pangeo', flush=True)
+    elif using_stitches:
+        print('Using STITCHED Data', flush=True)
+    else: 
+        print(f'Retrieving Data From {task_details.Reference_Input_Location}', flush=True)
+    print(f'======================================================')
 
     with LocalCluster(processes=True, threads_per_worker=1) as cluster, Client(cluster) as client:
         # Setting up dask.Client so that I can ssh into the dashboard
@@ -44,6 +76,9 @@ if __name__ == "__main__":
         if using_pangeo:
             # Run pangeo script
             basd_pangeo(task_details)
+        elif using_stitches:
+            # Run stitches script
+            basd_stitches(task_details)
         else:
             # Run downloaded data script
             basd_downloaded(task_details)
