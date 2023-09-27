@@ -119,6 +119,9 @@ if __name__ == "__main__":
     # Where to save data
     out_path = str(sys.argv[1])
 
+    # This will somehow need to be passed in in a standardized way in the future
+    data_path = str(sys.argv[2])
+
     # Model Choice
     esm = 'MRI-ESM2-0'
     # esm = 'MIROC6'
@@ -136,8 +139,6 @@ if __name__ == "__main__":
     variables = ['tas', 'pr', 'hurs', 'sfcWind', 'tasmin', 'tasmax', 'rlds', 'rsds']
 
     # Getting our trajectory to use (in this case GCAM reference scenario)
-    # This will somehow need to be passed in in a standardized way in the future
-    data_path = '/Users/prim232/gitrepos/climate_integration_metarepo/input/test_data/gcam_trajectory_data'
     trajectories = pd.read_csv(os.path.join(data_path, 'gmt_ssp_gcam7.csv'), skiprows=1)
     time_series_df = trajectories[
         (trajectories['region'] == 'Global') &
