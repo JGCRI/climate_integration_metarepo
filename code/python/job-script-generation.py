@@ -120,7 +120,7 @@ if __name__ == "__main__":
         job_file.writelines(f"#SBATCH --time={time}\n")
         job_file.writelines(f"#SBATCH --mail-type={mail_type}\n")
         job_file.writelines(f"#SBATCH --mail-user={email}\n")
-        job_file.writelines(f"#SBATCH --output=.out/{run_name}_BASD.out\n")
+        job_file.writelines(f"#SBATCH --output=.out/{run_name}_BASD_%j.out\n")
         job_file.writelines(f"#SBATCH --array=0-{mesh_df.shape[0]-1}%{max_concurrent}\n\n\n")
         job_file.writelines('# Load Modules\n')
         job_file.writelines('module load gcc/11.2.0\n')
