@@ -32,6 +32,7 @@ def create_tasrange_tasskew_stitched(run_details):
 
     for esm in esms:
         for scenario in scenarios:
+            print(f'Creating tasrange and tasskew for {esm} {scenario}')
             # Get input location
             current_task = run_details[
                 (run_details['ESM'] == esm) &
@@ -68,7 +69,7 @@ def create_tasrange_tasskew_stitched(run_details):
             try:
                 tasrange_files = glob.glob(os.path.join(esm_input_location, f'stitched_{esm}_tasrange_{scenario}.nc'))
                 assert len(tasrange_files) == 0, 'tasrange files already exist'
-                tasrange_array.to_netcdf(os.path.join(esm_input_location, f'stitched_{esm}_tasrange_{scenario}.nc'), compute=True)
+                tasrange_data.to_netcdf(os.path.join(esm_input_location, f'stitched_{esm}_tasrange_{scenario}.nc'), compute=True)
             except AssertionError:
                 pass
 
@@ -76,20 +77,42 @@ def create_tasrange_tasskew_stitched(run_details):
             try:
                 tasskew_files = glob.glob(os.path.join(esm_input_location, f'stitched_{esm}_tasskew_{scenario}.nc'))
                 assert len(tasskew_files) == 0, 'tasskew files already exist'
-                tasskew_array.to_netcdf(os.path.join(esm_input_location, f'stitched_{esm}_tasskew_{scenario}.nc'), compute=True)
+                tasskew_data.to_netcdf(os.path.join(esm_input_location, f'stitched_{esm}_tasskew_{scenario}.nc'), compute=True)
             except AssertionError:
                 pass
             ...
         ...
 
 def create_tasrange_tasskew_CMIP(run_details):
-        # Run specs
-    target_model = 'IPSL-CM6A-LR'
-    target_scenario = 'ssp245'
-    target_ensemble = 'r1i1p1f1'
-    print("====================================================================", flush=True)
-    print("Creating tasrange and tasskew", flush=True)
-    print("====================================================================", flush=True)
+    # List of all models, scenarios and ensemble members being used
+    scenarios = np.unique(run_details.Scenario.values).append('historical')
+    esms = np.unique(run_details.ESM.values)
+    ensembles = np.unique(run_details.Ensemble.values)
+
+    for esm in esms:
+        for scenario in scenarios:
+            for ensemble in ensembles:
+                print(f'Creating tasrange and tasskew for {esm} {scenario}')
+                # Get input location
+                # TODO: What to do for pangeo data
+                current_task = run_details[
+                    (run_details['ESM'] == esm) &
+                    (run_details['Scenario'] == scenario) &
+                    (run_details['Ensemble'] == ensemble)
+                ]
+                esm_input_location = current_task['ESM_Input_Location'].values[0]
+
+                # Does tas, tasmin and tasmax exist?
+                try:
+                    tas_files = glob.glob(os.path.join(esm_input_location, f'tas_day_{esm}_{scenario}_{ensemble}_*.nc'))
+                    tasmax_files = glob.glob(os.path.join(esm_input_location, f'tasmax_day_{esm}_{scenario}_{ensemble}_*.nc'))
+                    tasmin_files = glob.glob(os.path.join(esm_input_location, f'tasmin_day_{esm}_{scenario}_{ensemble}_*.nc'))
+                    assert len(tas_files) != 0, 'No tas files'
+                    assert len(tasmax_files) != 0, 'No tasmax files'
+                    assert len(tasmin_files) != 0, 'No tasmin files'
+                except AssertionError:
+                    next
+
 
 
     # Output file name (Bias Adjustment)
