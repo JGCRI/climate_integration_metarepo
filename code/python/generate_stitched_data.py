@@ -74,8 +74,13 @@ def format_data_for_stitches(interped_data, model, ensemble, experiment):
     return formatted_traj
 
 def get_recipe(target_data, archive_data, variables):
-    # Get recipe
-    stitches_recipe = stitches.make_recipe(target_data, archive_data, tol=0., N_matches=1, res='day', non_tas_variables=[var for var in variables if var != 'tas'])
+    # Get recipe (some randomness involved in fit, so try multiple times)
+    for i in range(10):
+        try:
+            stitches_recipe = stitches.make_recipe(target_data, archive_data, tol=0., N_matches=1, res='day', non_tas_variables=[var for var in variables if var != 'tas'])
+        except TypeError:
+            next
+    
     # Make sure last period has same length in archive and target
     last_period_length = stitches_recipe['target_end_yr'].values[-1] - stitches_recipe['target_start_yr'].values[-1]
     asy = stitches_recipe['archive_start_yr'].values
