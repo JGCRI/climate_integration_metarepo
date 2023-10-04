@@ -161,8 +161,6 @@ if __name__ == "__main__":
 
 # Get the available models, scenarios, and ensembles (if available)
     if run_details.iloc[0].stitched:
-        run_details = run_details[['ESM', 'Scenario']].copy().drop_duplicates()
         create_tasrange_tasskew_stitched(run_details)
     else:
-        run_details = run_details[['ESM', 'Scenario', 'Ensemble']].copy().drop_duplicates()
         create_tasrange_tasskew_CMIP(run_details)
