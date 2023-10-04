@@ -17,39 +17,73 @@
 
 # Packages =============================================================================================
 import os                                   # For navigating os
-import socket
+import glob
 import sys
 
-import dask
 import numpy as np
 import pandas as pd
 import xarray as xr
 
-import warnings
 
+def create_tasrange_tasskew_stitched(run_details):
+    # List of all models and scenarios being used
+    scenarios = np.unique(run_details.Scenario.values)
+    esms = np.unique(run_details.ESM.values)
 
-if __name__ == "__main__":
+    for esm in esms:
+        for scenario in scenarios:
+            # Get input location
+            current_task = run_details[
+                (run_details['ESM'] == esm) &
+                (run_details['Scenario'] == scenario)
+            ]
+            esm_input_location = current_task['ESM_Input_Location'].values[0]
 
-# Read in run details ================================================================
-    # Input path provided from command line
-    run_directory = str(sys.argv[1])
-    input_path = os.path.join('intermediate', str(sys.argv[2]))
+            # Does tas, tasmin and tasmax exist?
+            try:
+                tas_files = glob.glob(os.path.join(esm_input_location, f'stitched_{esm}_tas_{scenario}.nc'))
+                tasmax_files = glob.glob(os.path.join(esm_input_location, f'stitched_{esm}_tasmax_{scenario}.nc'))
+                tasmin_files = glob.glob(os.path.join(esm_input_location, f'stitched_{esm}_tasmin_{scenario}.nc'))
+                assert len(tas_files) != 0, 'No tas files'
+                assert len(tasmax_files) != 0, 'No tasmax files'
+                assert len(tasmin_files) != 0, 'No tasmin files'
+            except AssertionError:
+                next
 
-    # Read in .csv
-    run_details = pd.read_csv(os.path.join(input_path, 'run_manage_explicit_list.csv'))
+            # Open data
+            tas_data = xr.open_mfdataset(tas_files)
+            tasmin_data = xr.open_mfdataset(tasmin_files)
+            tasmax_data = xr.open_mfdataset(tasmax_files)
 
-# Get tasks asking for either tasmin or tasmax ======================================
-    run_details = run_details[(run_details['Variable'] == 'tasmin') | (run_details['Variable'] == 'tasmax')].copy()
+            # Create tasrange
+            tasrange_array = tasmax_data['tasmax'] - tasmin_data['tasmin']
+            # Create tasskew
+            tasskew_array = (tas_data['tas'] - tasmin_data['tasmin']) / tasrange_array
 
-# Get the available models, scenarios, and ensembles (if available)
-    if run_details.iloc[0].stitched:
-        run_details = run_details[['ESM', 'Scenario']].copy().drop_duplicates()
-    else:
-        run_details = run_details[['ESM', 'Scenario', 'Ensemble']].copy().drop_duplicates()
+            # Convert to xarray Dataset from Dataarray
+            tasrange_data = tasrange_array.to_dataset(name='tasrange')
+            tasskew_data = tasskew_array.to_dataset(name='tasskew')
 
-# Init Constants =============================================================================================
+            # If tasrange files don't already exist, create them
+            try:
+                tasrange_files = glob.glob(os.path.join(esm_input_location, f'stitched_{esm}_tasrange_{scenario}.nc'))
+                assert len(tasrange_files) == 0, 'tasrange files already exist'
+                tasrange_array.to_netcdf(os.path.join(esm_input_location, f'stitched_{esm}_tasrange_{scenario}.nc'), compute=True)
+            except AssertionError:
+                pass
 
-    # Run specs
+            # If tasskew files don't already exist, create them
+            try:
+                tasskew_files = glob.glob(os.path.join(esm_input_location, f'stitched_{esm}_tasskew_{scenario}.nc'))
+                assert len(tasskew_files) == 0, 'tasskew files already exist'
+                tasskew_array.to_netcdf(os.path.join(esm_input_location, f'stitched_{esm}_tasskew_{scenario}.nc'), compute=True)
+            except AssertionError:
+                pass
+            ...
+        ...
+
+def create_tasrange_tasskew_CMIP(run_details):
+        # Run specs
     target_model = 'IPSL-CM6A-LR'
     target_scenario = 'ssp245'
     target_ensemble = 'r1i1p1f1'
@@ -111,4 +145,24 @@ if __name__ == "__main__":
     tasskew_sim_hist.to_netcdf(os.path.join(output_path, output_tasskew_hist_file_name), compute=True)
 
 
-    print(f'YAY==================================================================================================')
+
+if __name__ == "__main__":
+
+# Read in run details ================================================================
+    # Input path provided from command line
+    run_directory = str(sys.argv[1])
+    input_path = os.path.join('intermediate', run_directory)
+
+    # Read in .csv
+    run_details = pd.read_csv(os.path.join(input_path, 'run_manage_explicit_list.csv'))
+
+# Get tasks asking for either tasmin or tasmax ======================================
+    run_details = run_details[(run_details['Variable'] == 'tasrange') | (run_details['Variable'] == 'tasskew')].copy()
+
+# Get the available models, scenarios, and ensembles (if available)
+    if run_details.iloc[0].stitched:
+        run_details = run_details[['ESM', 'Scenario']].copy().drop_duplicates()
+        create_tasrange_tasskew_stitched(run_details)
+    else:
+        run_details = run_details[['ESM', 'Scenario', 'Ensemble']].copy().drop_duplicates()
+        create_tasrange_tasskew_CMIP(run_details)
