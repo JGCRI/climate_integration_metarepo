@@ -139,7 +139,6 @@ if __name__ == "__main__":
     variables = ['tas', 'pr', 'hurs', 'sfcWind', 'tasmin', 'tasmax', 'rlds', 'rsds']
 
     # Getting our trajectory to use (in this case GCAM reference scenario)
-    data_path = '/Users/prim232/gitrepos/climate_integration_metarepo/input/test_data/gcam_trajectory_data'
     file_name = 'gcam6_ref_default.csv'
     time_series_df = pd.read_csv(os.path.join(data_path, file_name))
 
