@@ -20,6 +20,8 @@ import os                                   # For navigating os
 import glob
 import sys
 
+import fsspec  # Used semi-secretly in pangeo
+import intake  # Used semi-secretly in pangeo
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -61,7 +63,7 @@ def create_tasrange_tasskew_stitched(run_details):
             # Create tasskew
             tasskew_array = (tas_data['tas'] - tasmin_data['tasmin']) / tasrange_array
 
-            # Convert to xarray Dataset from Dataarray
+            # Convert to xarray Dataset from DataArray
             tasrange_data = tasrange_array.to_dataset(name='tasrange')
             tasskew_data = tasskew_array.to_dataset(name='tasskew')
 
@@ -83,7 +85,7 @@ def create_tasrange_tasskew_stitched(run_details):
             ...
         ...
 
-def create_tasrange_tasskew_CMIP(run_details):
+def create_tasrange_tasskew_CMIP(run_details, output_path):
     # List of all models, scenarios and ensemble members being used
     scenarios = np.unique(run_details.Scenario.values).append('historical')
     esms = np.unique(run_details.ESM.values)
@@ -101,6 +103,13 @@ def create_tasrange_tasskew_CMIP(run_details):
                     (run_details['Ensemble'] == ensemble)
                 ]
                 esm_input_location = current_task['ESM_Input_Location'].values[0]
+                using_pangeo = pd.isna(esm_input_location)
+                if using_pangeo:
+                    try:
+                        create_tasrange_tasskew_pangeo(output_path, esm, scenario, ensemble)
+                    except:
+                        pass
+                    next
 
                 # Does tas, tasmin and tasmax exist?
                 try:
@@ -113,60 +122,146 @@ def create_tasrange_tasskew_CMIP(run_details):
                 except AssertionError:
                     next
 
+                # Open data
+                tas_data = xr.open_mfdataset(tas_files)
+                tasmin_data = xr.open_mfdataset(tasmin_files)
+                tasmax_data = xr.open_mfdataset(tasmax_files)
+
+                # Create tasrange
+                tasrange_array = tasmax_data['tasmax'] - tasmin_data['tasmin']
+                # Create tasskew
+                tasskew_array = (tas_data['tas'] - tasmin_data['tasmin']) / tasrange_array
+
+                # Convert to xarray Dataset from DataArray
+                tasrange_data = tasrange_array.to_dataset(name='tasrange')
+                tasskew_data = tasskew_array.to_dataset(name='tasskew')
+
+                # If tasrange files don't already exist, create them
+                try:
+                    tasrange_files = glob.glob(os.path.join(esm_input_location, f'tasrange_day_{esm}_{scenario}_{ensemble}_*.nc'))
+                    assert len(tasrange_files) == 0, 'tasrange files already exist'
+                    tasrange_data.to_netcdf(os.path.join(esm_input_location, f'tasrange_day_{esm}_{scenario}_{ensemble}.nc'), compute=True)
+                except AssertionError:
+                    pass
+
+                # If tasskew files don't already exist, create them
+                try:
+                    tasskew_files = glob.glob(os.path.join(esm_input_location, f'tasskew_day_{esm}_{scenario}_{ensemble}_*.nc'))
+                    assert len(tasskew_files) == 0, 'tasskew files already exist'
+                    tasskew_data.to_netcdf(os.path.join(esm_input_location, f'tasskew_day_{esm}_{scenario}_{ensemble}.nc'), compute=True)
+                except AssertionError:
+                    pass
+
+                ...
+            ...
+        ...
+    ...
 
 
-    # Output file name (Bias Adjustment)
-    output_path = f'/rcfs/projects/gcims/data/climate/cmip6/{target_model}'
-    output_tasrange_fut_file_name = f'tasrange_day_{target_model}_{target_scenario}_{target_ensemble}_gn_20150101-21001230.nc'
-    output_tasskew_fut_file_name = f'tasskew_day_{target_model}_{target_scenario}_{target_ensemble}_gn_20150101-21001230.nc'
-    output_tasrange_hist_file_name = f'tasrange_day_{target_model}_historical_{target_ensemble}_gn_18500101-20141230.nc'
-    output_tasskew_hist_file_name = f'tasskew_day_{target_model}_historical_{target_ensemble}_gn_18500101-20141230.nc'
+# Helper function to easily pull a netcdf from pangeo with just the zstore address from
+# the stitches `pangeo_table.csv` file copied into this project.
+def fetch_nc(zstore, **kwargs):
+    """Extract data for a single file.
+    :param zstore:                str of the location of the cmip6 data file on pangeo.
+    :param chunks:                dictionary of dask chunk specification
+    :return:                      an xarray containing cmip6 data downloaded from the pangeo.
+    """
+    ds = xr.open_zarr(fsspec.get_mapper(zstore), **kwargs)
+    # ds.sortby('time')
+    return ds
 
 
-    # Obs hist and Parameters object ======================================================================
+# Update the pangeo table
+def fetch_pangeo_table():
+    """ Get a copy of the pangeo archive contents
+    :return: a pd data frame containing information about the model, source, experiment, ensemble and
+    so on that is available for download on pangeo.
+    """
+    # smaller set of experiments to save to make life easier.
+    # experiments most likely to want to pattern scale on or
+    # otherwise get data from
+    exps =  ['historical', 'ssp370',
+            'ssp585', 'ssp126', 'ssp245',
+            'ssp119', 'ssp460', 'ssp434',
+            'ssp534-over', 'piControl']
 
-    # Reading in CMIP6 data
-    input_sim_dir = output_path
-    tas_sim_fut_pattern = f'tas_day_{target_model}_{target_scenario}_{target_ensemble}_*.nc'
-    tas_sim_hist_pattern = f'tas_day_{target_model}_historical_{target_ensemble}_*.nc'
-    tasmin_sim_fut_pattern = f'tasmin_day_{target_model}_{target_scenario}_{target_ensemble}_*.nc'
-    tasmin_sim_hist_pattern = f'tasmin_day_{target_model}_historical_{target_ensemble}_*.nc'
-    tasmax_sim_fut_pattern = f'tasmax_day_{target_model}_{target_scenario}_{target_ensemble}_*.nc'
-    tasmax_sim_hist_pattern = f'tasmax_day_{target_model}_historical_{target_ensemble}_*.nc'
+    # The url path that contains to the pangeo archive table of contents.
+    url = "https://storage.googleapis.com/cmip6/pangeo-cmip6.json"
+    dat = intake.open_esm_datastore(url)
+    dat = dat.df
+    out = (dat.loc[dat['grid_label'] == "gn"][["source_id", "experiment_id", "member_id", "variable_id",
+                                                    "zstore", "table_id"]].copy())
+    out = out.rename(columns={"source_id": "model", "experiment_id": "experiment",
+                                                "member_id": "ensemble", "variable_id": "variable",
+                                                "zstore": "zstore", "table_id": "domain"}).copy()
+    out = (out.loc[out['experiment'].isin(exps)]).drop_duplicates().reset_index(drop=True).copy()
 
-    # Begin Dask =============================================================================================
+    return out
 
-    # Open data
-    tas_sim_fut = xr.open_mfdataset(os.path.join(input_sim_dir, tas_sim_fut_pattern))
-    tasmin_sim_fut = xr.open_mfdataset(os.path.join(input_sim_dir, tasmin_sim_fut_pattern))
-    tasmax_sim_fut = xr.open_mfdataset(os.path.join(input_sim_dir, tasmax_sim_fut_pattern))
-    tas_sim_hist = xr.open_mfdataset(os.path.join(input_sim_dir, tas_sim_hist_pattern))
-    tasmin_sim_hist = xr.open_mfdataset(os.path.join(input_sim_dir, tasmin_sim_hist_pattern))
-    tasmax_sim_hist = xr.open_mfdataset(os.path.join(input_sim_dir, tasmax_sim_hist_pattern))
+
+# Fetch data urls
+def get_pangeo_urls(variable, esm, scenario, ensemble):
+    """
+    Function for pulling urls to access data from
+    """
+    # Getting full table of pangeo database
+    pangeo_table = fetch_pangeo_table()
+
+    # Getting url for given model/variable/scenario/ensemble
+    pangeo_urls = pangeo_table[(pangeo_table['model'] == esm) &
+                                (pangeo_table['variable'] == variable) &
+                                (pangeo_table['domain'] == 'day') &
+                                (pangeo_table['experiment'] == scenario) &
+                                (pangeo_table['ensemble'] == ensemble)].copy().iloc[0].zstore
+    
+    return pangeo_urls
+
+
+def create_tasrange_tasskew_pangeo(output_path, esm, scenario, ensemble):
+    # Need to get tas, tasmin, tasmax from pangeo, create tasrange/tasskew, and save it
+    # Saving in a created tasrange_tasskew directory in the run directory in intermediate output
+    # We need main to check for tasrange/tasskew and pangeo combo, and tell it to instead
+    # look at this directory, and use the downloaded method. Then we can wipe that directory
+    # after the run
+
+    # Get urls for the required datasets
+    tas_urls = get_pangeo_urls('tas', esm, scenario, ensemble)
+    tasmax_urls = get_pangeo_urls('tasmax', esm, scenario, ensemble)
+    tasmin_urls = get_pangeo_urls('tasmin', esm, scenario, ensemble)
+
+    # Download the data
+    tas_data = fetch_nc(tas_urls)
+    tasmax_data = fetch_nc(tasmax_urls)
+    tasmin_data = fetch_nc(tasmin_urls)
 
     # Create tasrange
-    tasrange_sim_fut = tasmax_sim_fut['tasmax'] - tasmin_sim_fut['tasmin']
-    tasrange_sim_hist = tasmax_sim_hist['tasmax'] - tasmin_sim_hist['tasmin']
-
+    tasrange_array = tasmax_data['tasmax'] - tasmin_data['tasmin']
     # Create tasskew
-    tasskew_sim_fut = (tas_sim_fut['tas'] - tasmin_sim_fut['tasmin']) / tasrange_sim_fut
-    tasskew_sim_hist = (tas_sim_hist['tas'] - tasmin_sim_hist['tasmin']) / tasrange_sim_hist
+    tasskew_array = (tas_data['tas'] - tasmin_data['tasmin']) / tasrange_array
 
-    # Convert to xarray Dataset from Dataarray
-    tasrange_sim_fut = tasrange_sim_fut.to_dataset(name='tasrange')
-    tasrange_sim_hist = tasrange_sim_hist.to_dataset(name='tasrange')
-    tasskew_sim_fut = tasskew_sim_fut.to_dataset(name='tasskew')
-    tasskew_sim_hist = tasskew_sim_hist.to_dataset(name='tasskew')
+    # Convert to xarray Dataset from DataArray
+    tasrange_data = tasrange_array.to_dataset(name='tasrange')
+    tasskew_data = tasskew_array.to_dataset(name='tasskew')
 
-    # Write out intermediate files
-    # tasrange
-    tasrange_sim_fut.to_netcdf(os.path.join(output_path, output_tasrange_fut_file_name), compute=True)
-    tasrange_sim_hist.to_netcdf(os.path.join(output_path, output_tasrange_hist_file_name), compute=True)
+    # Create temp directory in intermediate output
+    os.mkdir(os.path.join(output_path, 'tasrange_tasskew'), exist_ok=True)
 
-    # tasskew
-    tasskew_sim_fut.to_netcdf(os.path.join(output_path, output_tasskew_fut_file_name), compute=True)
-    tasskew_sim_hist.to_netcdf(os.path.join(output_path, output_tasskew_hist_file_name), compute=True)
+    # If tasrange files don't already exist, create them
+    try:
+        tasrange_files = glob.glob(os.path.join(output_path, f'tasrange_day_{esm}_{scenario}_{ensemble}_*.nc'))
+        assert len(tasrange_files) == 0, 'tasrange files already exist'
+        tasrange_data.to_netcdf(os.path.join(output_path, f'tasrange_day_{esm}_{scenario}_{ensemble}.nc'), compute=True)
+    except AssertionError:
+        pass
 
+    # If tasskew files don't already exist, create them
+    try:
+        tasskew_files = glob.glob(os.path.join(output_path, f'tasskew_day_{esm}_{scenario}_{ensemble}_*.nc'))
+        assert len(tasskew_files) == 0, 'tasskew files already exist'
+        tasskew_data.to_netcdf(os.path.join(output_path, f'tasskew_day_{esm}_{scenario}_{ensemble}.nc'), compute=True)
+    except AssertionError:
+        pass
+    ...
 
 
 if __name__ == "__main__":
@@ -186,4 +281,4 @@ if __name__ == "__main__":
     if run_details.iloc[0].stitched:
         create_tasrange_tasskew_stitched(run_details)
     else:
-        create_tasrange_tasskew_CMIP(run_details)
+        create_tasrange_tasskew_CMIP(run_details, input_path)
