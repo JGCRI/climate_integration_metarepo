@@ -100,7 +100,7 @@ def create_tasrange_tasskew_CMIP(run_details):
     output_tasskew_hist_file_name = f'tasskew_day_{target_model}_historical_{target_ensemble}_gn_18500101-20141230.nc'
 
 
-# Obs hist and Parameters object ======================================================================
+    # Obs hist and Parameters object ======================================================================
 
     # Reading in CMIP6 data
     input_sim_dir = output_path
@@ -111,7 +111,7 @@ def create_tasrange_tasskew_CMIP(run_details):
     tasmax_sim_fut_pattern = f'tasmax_day_{target_model}_{target_scenario}_{target_ensemble}_*.nc'
     tasmax_sim_hist_pattern = f'tasmax_day_{target_model}_historical_{target_ensemble}_*.nc'
 
-# Begin Dask =============================================================================================
+    # Begin Dask =============================================================================================
 
     # Open data
     tas_sim_fut = xr.open_mfdataset(os.path.join(input_sim_dir, tas_sim_fut_pattern))
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     input_path = os.path.join('intermediate', run_directory)
 
     # Read in .csv
-    run_details = pd.read_csv(os.path.join(input_path, 'run_manage_explicit_list.csv'))
+    run_details = pd.read_csv(os.path.join(input_path, 'run_manager_explicit_list.csv'))
 
 # Get tasks asking for either tasmin or tasmax ======================================
     run_details = run_details[(run_details['Variable'] == 'tasrange') | (run_details['Variable'] == 'tasskew')].copy()

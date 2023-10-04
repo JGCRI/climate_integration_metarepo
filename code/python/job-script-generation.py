@@ -131,7 +131,7 @@ if __name__ == "__main__":
         job_file.writelines('# Timing\n')
         job_file.writelines('start=`date +%s.%N`\n\n')
         job_file.writelines('# Run script\n')
-        job_file.writelines(f"python ../python/main.py $SLURM_ARRAY_TASK_ID {run_name}\n\n")
+        job_file.writelines(f"python code/python/main.py $SLURM_ARRAY_TASK_ID {run_name}\n\n")
         job_file.writelines('# End timing and print runtime\n')
         job_file.writelines('end=`date +%s.$N`\n')
         job_file.writelines('runtime=$( echo "($end - $start) / 60" | bc -l )\n')
@@ -157,7 +157,7 @@ if __name__ == "__main__":
         job_file.writelines('# Timing\n')
         job_file.writelines('start=`date +%s.%N`\n\n')
         job_file.writelines('# Run script\n')
-        job_file.writelines(f"python ../python/create_tasrange_tasskew.py {run_name}\n\n")
+        job_file.writelines(f"python code/python/create_tasrange_tasskew.py {run_name}\n\n")
         job_file.writelines('# End timing and print runtime\n')
         job_file.writelines('end=`date +%s.$N`\n')
         job_file.writelines('runtime=$( echo "($end - $start) / 60" | bc -l )\n')
@@ -183,7 +183,7 @@ if __name__ == "__main__":
         job_file.writelines('# Timing\n')
         job_file.writelines('start=`date +%s.%N`\n\n')
         job_file.writelines('# Run script\n')
-        job_file.writelines(f"python ../python/create_tasmin_tasmax.py {run_name}\n\n")
+        job_file.writelines(f"python code/python/create_tasmin_tasmax.py {run_name}\n\n")
         job_file.writelines('# End timing and print runtime\n')
         job_file.writelines('end=`date +%s.$N`\n')
         job_file.writelines('runtime=$( echo "($end - $start) / 60" | bc -l )\n')
@@ -214,13 +214,13 @@ if __name__ == "__main__":
         job_file.writelines('start=`date +%s.%N`\n\n')
 
         job_file.writelines('# Run tasrange and tasskew creation job\n')
-        job_file.writelines("range_skew_id=$(sbatch --parsable tasrange-tasskew.job)\n\n")
+        job_file.writelines(f"range_skew_id=$(sbatch --parsable intermediate/{run_name}/tasrange-tasskew.job)\n\n")
 
         job_file.writelines('# Run bias adjustment and downscaling\n')
-        job_file.writelines("basd_id=$(sbatch --parsable --dependency=afterok:$range_skew_id basd.job)\n\n")
+        job_file.writelines(f"basd_id=$(sbatch --parsable --dependency=afterok:$range_skew_id intermediate/{run_name}/basd.job)\n\n")
 
         job_file.writelines('# Run tasmin and tasmax creation job\n')
-        job_file.writelines("min_max_id=$(sbatch --parsable --dependency=afterok:$basd_id basd.job)\n\n")
+        job_file.writelines(f"min_max_id=$(sbatch --parsable --dependency=afterok:$basd_id intermediate/{run_name}/tasmin_tasmax.job)\n\n")
 
         job_file.writelines('# End timing and print runtime\n')
         job_file.writelines('end=`date +%s.$N`\n')
