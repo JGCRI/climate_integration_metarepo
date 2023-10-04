@@ -127,7 +127,7 @@ if __name__ == "__main__":
     # esm = 'MIROC6'
 
     # Experiment Name
-    experiment = 'GCAM_SSP2'
+    experiment = 'GCAM_ref'
 
     # Ensemble Name
     ensemble = 'hectorUI1'
@@ -139,18 +139,12 @@ if __name__ == "__main__":
     variables = ['tas', 'pr', 'hurs', 'sfcWind', 'tasmin', 'tasmax', 'rlds', 'rsds']
 
     # Getting our trajectory to use (in this case GCAM reference scenario)
-    trajectories = pd.read_csv(os.path.join(data_path, 'gmt_ssp_gcam7.csv'), skiprows=1)
-    time_series_df = trajectories[
-        (trajectories['region'] == 'Global') &
-        (trajectories['temperature'] == 'global-mean-surface-temperature') &
-        (trajectories['scenario'] == 'GCAM_SSP2,date=2023-18-7T10:03:26-04:00')
-        ].melt(
-        value_vars = [str(x) for x in np.arange(1980, 2101, 5)], 
-        value_name = 'tas',
-        var_name = 'year'
-    )
-    # End up with two numpy arrays, one the tas values, and the other the respective years
-    tas_time_series = np.array(time_series_df.tas.values)
+    data_path = '/Users/prim232/gitrepos/climate_integration_metarepo/input/test_data/gcam_trajectory_data'
+    file_name = 'gcam6_ref_default.csv'
+    time_series_df = pd.read_csv(os.path.join(data_path, file_name))
+
+    # Getting the time series and years as numpy arrays
+    tas_time_series = np.array(time_series_df.temp.values)
     years = np.array( time_series_df.year.values ).astype(int)
 
     # Run STITCHING process
