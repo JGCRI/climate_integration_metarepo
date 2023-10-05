@@ -51,10 +51,10 @@ def basd_downloaded(run_object, run_name):
     params = utils.get_parameters(run_object, os.path.join(INPUT_PATH, run_name))
 
     # 5. Read encoding settings
-    encoding, reset_chunksizes = utils.get_encoding(run_object, os.path.join(INPUT_PATH, run_name))
+    encoding, reset_chunksizes = utils.get_encoding(os.path.join(INPUT_PATH, run_name))
 
     # 6. Read attributes
-    variable_attributes, global_monthly_attributes, global_daily_attributes = utils.get_attributes(run_object, os.path.join(INPUT_PATH, run_name))
+    variable_attributes, global_monthly_attributes, global_daily_attributes = utils.get_attributes(run_object.Variable, os.path.join(INPUT_PATH, run_name))
 
     # 7. Read Dask settings
     global time_chunk, lat_chunk, lon_chunk

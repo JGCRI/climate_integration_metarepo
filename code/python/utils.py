@@ -44,7 +44,7 @@ def get_chunk_sizes(input_path):
 
 
 # Get attributes for given variable, and global
-def get_attributes(run_object, input_path):
+def get_attributes(variable, input_path):
     """
     Function for reading in variable and global attributes from input file
     """
@@ -52,7 +52,7 @@ def get_attributes(run_object, input_path):
     attribute_data = pd.read_csv(os.path.join(input_path, 'attributes.csv'))
 
     # Get attribute data as dictionaries
-    variable_attribute_dict = attribute_data[attribute_data.variable == run_object.Variable].dropna(axis=1).to_dict(orient='records')[0]
+    variable_attribute_dict = attribute_data[attribute_data.variable == variable].dropna(axis=1).to_dict(orient='records')[0]
     try:
         global_monthly_attribute_dict = attribute_data[attribute_data.variable == 'global_monthly'].dropna(axis=1).to_dict(orient='records')[0]
         global_daily_attribute_dict = attribute_data[attribute_data.variable == 'global_daily'].dropna(axis=1).to_dict(orient='records')[0]
@@ -110,7 +110,7 @@ def load_sd_data(run_object, input_ref_dir, time_chunk_size, output_ba_path, out
 
 
 # Function for reading in encoding parameters to be passed to xarray.to_netcdf()
-def get_encoding(run_object, input_path):
+def get_encoding(input_path):
     """
     Function for reading in encoding parameters to be passed to xarray.to_netcdf()
     """
