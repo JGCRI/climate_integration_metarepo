@@ -196,11 +196,11 @@ if __name__ == "__main__":
         job_file.writelines('# Slurm Settings\n')
         job_file.writelines(f"#SBATCH --account={account}\n")
         job_file.writelines(f"#SBATCH --partition={partition}\n")
-        job_file.writelines(f"#SBATCH --job-name={run_name}_tasmin_tasmax.job\n")
+        job_file.writelines(f"#SBATCH --job-name={run_name}_manager.job\n")
         job_file.writelines(f"#SBATCH --time={time}\n")
         job_file.writelines(f"#SBATCH --mail-type={mail_type}\n")
         job_file.writelines(f"#SBATCH --mail-user={email}\n")
-        job_file.writelines(f"#SBATCH --output=.out/{run_name}_tasmin_tasmax.out\n\n\n")
+        job_file.writelines(f"#SBATCH --output=.out/{run_name}_manager.out\n\n\n")
 
         job_file.writelines('# Load Modules\n')
         job_file.writelines('module load gcc/11.2.0\n')
@@ -214,7 +214,7 @@ if __name__ == "__main__":
         job_file.writelines('start=`date +%s.%N`\n\n')
 
         job_file.writelines('# Run tasrange and tasskew creation job\n')
-        job_file.writelines(f"range_skew_id=$(sbatch --parsable intermediate/{run_name}/tasrange-tasskew.job)\n\n")
+        job_file.writelines(f"range_skew_id=$(sbatch --parsable intermediate/{run_name}/tasrange_tasskew.job)\n\n")
 
         job_file.writelines('# Run bias adjustment and downscaling\n')
         job_file.writelines(f"basd_id=$(sbatch --parsable --dependency=afterok:$range_skew_id intermediate/{run_name}/basd.job)\n\n")
