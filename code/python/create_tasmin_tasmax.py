@@ -76,6 +76,8 @@ def create_tasmin_tasmax_stitched(
     # List of all models and scenarios being used
     scenarios = np.unique(run_details.Scenario.values)
     esms = np.unique(run_details.ESM.values)
+    ref_datasets = np.unique(run_details.Reference_Dataset.values)
+    application_periods = np.unique(run_details.application_period.values)
 
     for esm in esms:
         for scenario in scenarios:
