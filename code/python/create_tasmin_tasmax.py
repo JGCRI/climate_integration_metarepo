@@ -91,7 +91,7 @@ def create_tasmin_tasmax_stitched(run_details):
 
 
 def create_general_CMIP(
-                        tas_file_name, tasrange_array, tasskew_file_name, tasmin_file_name, tasmax_file_name,
+                        tas_file_name, tasrange_file_name, tasskew_file_name, tasmin_file_name, tasmax_file_name,
                         full_out_path, encoding, reset_chunk_sizes, 
                         tasmin_attributes, tasmax_attributes, global_attributes
                     ):
@@ -119,12 +119,12 @@ def create_general_CMIP(
     tasmax_data['tasmax'].attrs = tasmax_attributes
 
     # Reset Chunk sizes
-    if reset_chunksizes:
+    if reset_chunk_sizes:
         encoding['chunksizes'] = utils.reset_chunk_sizes(encoding['chunksizes'], tas_data.dims)
 
     # Save data
-    tasmin_data.to_netcdf(os.path.join(full_out_path, tasmin_file_name), encoding={'tasmin': encoding} compute=True)
-    tasmax_data.to_netcdf(os.path.join(full_out_path, tasmax_file_name), encoding={'tasmax': encoding} compute=True)
+    tasmin_data.to_netcdf(os.path.join(full_out_path, tasmin_file_name), encoding={'tasmin': encoding}, compute=True)
+    tasmax_data.to_netcdf(os.path.join(full_out_path, tasmax_file_name), encoding={'tasmax': encoding}, compute=True)
 
     ...
 
@@ -336,11 +336,11 @@ if __name__ == "__main__":
     run_details = run_details[(run_details['Variable'] == 'tasrange') | (run_details['Variable'] == 'tasskew')].copy()
 
     # Read encoding settings
-    encoding, reset_chunksizes = utils.get_encoding(os.path.join('input', run_name))
+    encoding, reset_chunk_sizes = utils.get_encoding(os.path.join('input', run_directory))
 
     # Get attributes
-    tasmin_attributes, global_monthly_attributes, global_daily_attributes = utils.get_attributes('tasmin', os.path.join('input', run_name))
-    tasmax_attributes, _, _ = utils.get_attributes('tasmax', os.path.join('input', run_name))
+    tasmin_attributes, global_monthly_attributes, global_daily_attributes = utils.get_attributes('tasmin', os.path.join('input', run_directory))
+    tasmax_attributes, _, _ = utils.get_attributes('tasmax', os.path.join('input', run_directory))
 
     # Get the available models, scenarios, and ensembles (if available)
     if run_details.iloc[0].stitched:
