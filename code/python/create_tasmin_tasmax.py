@@ -19,136 +19,335 @@ Output:
 
 # Packages =============================================================================================
 import os                                   # For navigating os
-import socket
+import glob
 import sys
 
-import dask
-import dask.array as da
-from dask.distributed import Client, LocalCluster, progress
 import numpy as np
+import pandas as pd
 import xarray as xr
+
+import utils
+
+
+def create_tasmin_tasmax_stitched(run_details):
+    # List of all models and scenarios being used
+    scenarios = np.unique(run_details.Scenario.values)
+    esms = np.unique(run_details.ESM.values)
+
+    for esm in esms:
+        for scenario in scenarios:
+            print(f'Creating tasrange and tasskew for {esm} {scenario}')
+            # Get input location
+            current_task = run_details[
+                (run_details['ESM'] == esm) &
+                (run_details['Scenario'] == scenario)
+            ]
+            esm_input_location = current_task['ESM_Input_Location'].values[0]
+
+            # Does tas, tasmin and tasmax exist?
+            try:
+                tas_files = glob.glob(os.path.join(esm_input_location, f'stitched_{esm}_tas_{scenario}.nc'))
+                tasmax_files = glob.glob(os.path.join(esm_input_location, f'stitched_{esm}_tasmax_{scenario}.nc'))
+                tasmin_files = glob.glob(os.path.join(esm_input_location, f'stitched_{esm}_tasmin_{scenario}.nc'))
+                assert len(tas_files) != 0, 'No tas files'
+                assert len(tasmax_files) != 0, 'No tasmax files'
+                assert len(tasmin_files) != 0, 'No tasmin files'
+            except AssertionError:
+                next
+
+            # Open data
+            tas_data = xr.open_mfdataset(tas_files)
+            tasmin_data = xr.open_mfdataset(tasmin_files)
+            tasmax_data = xr.open_mfdataset(tasmax_files)
+
+            # Create tasrange
+            tasrange_array = tasmax_data['tasmax'] - tasmin_data['tasmin']
+            # Create tasskew
+            tasskew_array = (tas_data['tas'] - tasmin_data['tasmin']) / tasrange_array
+
+            # Convert to xarray Dataset from DataArray
+            tasrange_data = tasrange_array.to_dataset(name='tasrange')
+            tasskew_data = tasskew_array.to_dataset(name='tasskew')
+
+            # If tasrange files don't already exist, create them
+            try:
+                tasrange_files = glob.glob(os.path.join(esm_input_location, f'stitched_{esm}_tasrange_{scenario}.nc'))
+                assert len(tasrange_files) == 0, 'tasrange files already exist'
+                tasrange_data.to_netcdf(os.path.join(esm_input_location, f'stitched_{esm}_tasrange_{scenario}.nc'), compute=True)
+            except AssertionError:
+                print('Warning, tasrange files already exist')
+                pass
+
+            # If tasskew files don't already exist, create them
+            try:
+                tasskew_files = glob.glob(os.path.join(esm_input_location, f'stitched_{esm}_tasskew_{scenario}.nc'))
+                assert len(tasskew_files) == 0, 'tasskew files already exist'
+                tasskew_data.to_netcdf(os.path.join(esm_input_location, f'stitched_{esm}_tasskew_{scenario}.nc'), compute=True)
+            except AssertionError:
+                print('Warning, tasskew files already exist')
+                pass
+            ...
+        ...
+
+
+def create_general_CMIP(
+                        tas_file_name, tasrange_array, tasskew_file_name, tasmin_file_name, tasmax_file_name,
+                        full_out_path, encoding, reset_chunk_sizes, 
+                        tasmin_attributes, tasmax_attributes, global_attributes
+                    ):
+    # Open data
+    tas_data = xr.open_mfdataset(os.path.join(full_out_path, tas_file_name))
+    tasrange_data = xr.open_mfdataset(os.path.join(full_out_path, tasrange_file_name))
+    tasskew_data = xr.open_mfdataset(os.path.join(full_out_path, tasskew_file_name))
+
+    # Create tasmin
+    tasmin_array = tas_data['tas'] - (tasskew_data['tasskew'] * tasrange_data['tasrange'])
+
+    # Create tasmax
+    tasmax_array = tasmin_array + tasrange_data['tasrange']
+
+    # Convert to xarray DataSet from DataArray
+    tasmin_data = tasmin_array.to_dataset(name='tasmin')
+    tasmax_data = tasmax_array.to_dataset(name='tasmax')
+
+    # Set global attributes
+    tasmin_data.attrs = global_attributes
+    tasmax_data.attrs = global_attributes
+
+    # Set variable attributes
+    tasmin_data['tasmin'].attrs = tasmin_attributes
+    tasmax_data['tasmax'].attrs = tasmax_attributes
+
+    # Reset Chunk sizes
+    if reset_chunksizes:
+        encoding['chunksizes'] = utils.reset_chunk_sizes(encoding['chunksizes'], tas_data.dims)
+
+    # Save data
+    tasmin_data.to_netcdf(os.path.join(full_out_path, tasmin_file_name), encoding={'tasmin': encoding} compute=True)
+    tasmax_data.to_netcdf(os.path.join(full_out_path, tasmax_file_name), encoding={'tasmax': encoding} compute=True)
+
+    ...
+
+
+def create_monthly_ba_CMIP(
+                            esm, scenario, ensemble, start, end, ref_name, 
+                            output_location, encoding, reset_chunk_sizes,
+                            tasmin_attributes, tasmax_attributes,
+                            global_monthly_attributes
+                        ):
+    # File names
+    tas_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tas_global_monthly_{start}_{end}.nc'
+    tasrange_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasrange_global_monthly_{start}_{end}.nc'
+    tasskew_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasskew_global_monthly_{start}_{end}.nc'
+    tasmin_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasmin_global_monthly_{start}_{end}.nc'
+    tasmax_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasmax_global_monthly_{start}_{end}.nc'
+
+    # Full output_location
+    full_out_path = os.path.join(output_location, ref_name, esm, scenario, 'ba')
+
+    # Save data using generic saver function
+    create_general_CMIP(
+        tas_file_name, tasrange_file_name, tasskew_file_name, tasmin_file_name, tasmax_file_name,
+        full_out_path, encoding, reset_chunk_sizes, 
+        tasmin_attributes, tasmax_attributes, global_monthly_attributes
+    )
+
+    ...
+
+
+def create_daily_ba_CMIP(
+                            esm, scenario, ensemble, start, end, ref_name, 
+                            output_location, encoding, reset_chunk_sizes,
+                            tasmin_attributes, tasmax_attributes,
+                            global_daily_attributes
+                        ):
+    # File names
+    tas_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tas_global_daily_{start}_{end}.nc'
+    tasrange_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasrange_global_daily_{start}_{end}.nc'
+    tasskew_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasskew_global_daily_{start}_{end}.nc'
+    tasmin_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasmin_global_daily_{start}_{end}.nc'
+    tasmax_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasmax_global_daily_{start}_{end}.nc'
+
+    # Full output_location
+    full_out_path = os.path.join(output_location, ref_name, esm, scenario, 'ba')
+
+    # Save data using generic saver function
+    create_general_CMIP(
+        tas_file_name, tasrange_file_name, tasskew_file_name, tasmin_file_name, tasmax_file_name,
+        full_out_path, encoding, reset_chunk_sizes, 
+        tasmin_attributes, tasmax_attributes, global_daily_attributes
+    )
+
+    ...
+
+
+def create_monthly_basd_CMIP(
+                            esm, scenario, ensemble, start, end, ref_name, 
+                            output_location, encoding, reset_chunk_sizes,
+                            tasmin_attributes, tasmax_attributes,
+                            global_monthly_attributes
+                        ):
+    # File names
+    tas_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tas_global_monthly_{start}_{end}.nc'
+    tasrange_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasrange_global_monthly_{start}_{end}.nc'
+    tasskew_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasskew_global_monthly_{start}_{end}.nc'
+    tasmin_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasmin_global_monthly_{start}_{end}.nc'
+    tasmax_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasmax_global_monthly_{start}_{end}.nc'
+
+    # Full output_location
+    full_out_path = os.path.join(output_location, ref_name, esm, scenario, 'basd')
+
+    # Save data using generic saver function
+    create_general_CMIP(
+        tas_file_name, tasrange_file_name, tasskew_file_name, tasmin_file_name, tasmax_file_name,
+        full_out_path, encoding, reset_chunk_sizes, 
+        tasmin_attributes, tasmax_attributes, global_monthly_attributes
+    )
+
+    ...
+
+
+def create_daily_basd_CMIP(
+                            esm, scenario, ensemble, start, end, ref_name, 
+                            output_location, encoding, reset_chunk_sizes,
+                            tasmin_attributes, tasmax_attributes,
+                            global_daily_attributes
+                        ):
+    # File names
+    tas_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tas_global_daily_{start}_{end}.nc'
+    tasrange_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasrange_global_daily_{start}_{end}.nc'
+    tasskew_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasskew_global_daily_{start}_{end}.nc'
+    tasmin_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasmin_global_daily_{start}_{end}.nc'
+    tasmax_file_name = f'{esm}_{ensemble}_{ref_name}_{scenario}_tasmax_global_daily_{start}_{end}.nc'
+
+    # Full output_location
+    full_out_path = os.path.join(output_location, ref_name, esm, scenario, 'basd')
+
+    # Save data using generic saver function
+    create_general_CMIP(
+        tas_file_name, tasrange_file_name, tasskew_file_name, tasmin_file_name, tasmax_file_name,
+        full_out_path, encoding, reset_chunk_sizes, 
+        tasmin_attributes, tasmax_attributes, global_daily_attributes
+    )
+
+    ...
+
+
+def create_tasmin_tasmax_CMIP(
+                                run_details, encoding, reset_chunk_sizes, 
+                                tasmin_attributes, tasmax_attributes,
+                                global_monthly_attributes, global_daily_attributes
+                            ):
+    # List of all models, scenarios and ensemble members being used
+    scenarios = np.append( np.unique(run_details.Scenario.values), ['historical'] )
+    esms = np.unique(run_details.ESM.values)
+    ensembles = np.unique(run_details.Ensemble.values)
+    ref_datasets = np.unique(run_details.Reference_Dataset.values)
+    application_periods = np.unique(run_details.application_period.values)
+
+    for esm in esms:
+        for scenario in scenarios:
+            for ensemble in ensembles:
+                for ref_name in ref_datasets:
+                    for application_period in application_periods:
+                        
+                        print(f'Creating tasrange and tasskew for {esm} {scenario}')
+                        # Get input/output location
+                        current_task = run_details[
+                            (run_details['ESM'] == esm) &
+                            (run_details['Scenario'] == scenario) &
+                            (run_details['Ensemble'] == ensemble) &
+                            (run_details['Reference_Dataset'] == ensemble) &
+                            (run_details['application_period'] == ensemble) 
+                        ]
+                        output_location = current_task['Output_Location'].values[0]
+                        using_pangeo = pd.isna(output_location)
+
+                        # Start and End years
+                        start, end = str.split(application_period, '-')
+
+                        # Try to create daily bias adjusted tasmin and tasmax
+                        try:
+                            create_daily_ba_CMIP(
+                                esm, scenario, ensemble, start, end, ref_name, 
+                                output_location, encoding, reset_chunk_sizes,
+                                tasmin_attributes, tasmax_attributes,
+                                global_daily_attributes
+                            )
+                        except:
+                            print(f'Waringing, could not create daily bias adjusted tasmin and tasmax')
+                            pass
+
+                        # Try to create monthly bias adjusted tasmin and tasmax
+                        try:
+                            create_monthly_ba_CMIP(
+                                esm, scenario, ensemble, start, end, ref_name, 
+                                output_location, encoding, reset_chunk_sizes,
+                                tasmin_attributes, tasmax_attributes,
+                                global_monthly_attributes
+                            )
+                        except:
+                            print(f'Waringing, could not create monthly bias adjusted tasmin and tasmax')
+                            pass
+
+                        # Try to create daily bias adjusted and downscaled tasmin and tasmax
+                        try:
+                            create_daily_basd_CMIP(
+                                esm, scenario, ensemble, start, end, ref_name, 
+                                output_location, encoding, reset_chunk_sizes,
+                                tasmin_attributes, tasmax_attributes,
+                                global_daily_attributes
+                            )
+                        except:
+                            print(f'Waringing, could not create daily bias adjusted and downscaled tasmin and tasmax')
+                            pass
+
+                        # Try to create monthly bias adjusted tasmin and tasmax
+                        try:
+                            create_monthly_basd_CMIP(
+                                esm, scenario, ensemble, start, end, ref_name, 
+                                output_location, encoding, reset_chunk_sizes,
+                                tasmin_attributes, tasmax_attributes,
+                                global_monthly_attributes
+                            )
+                        except:
+                            print(f'Waringing, could not create monthly bias adjusted and downscaled tasmin and tasmax')
+                            pass
+
+                        ...
+                    ...
+                ...
+            ...
+        ...
+    ...
 
 
 if __name__ == "__main__":
 
-    # Define paths
-    input_files_path = '../../input'
-    intermediate_path = '../../intermediate'
+    # Read in run details ================================================================
+    # Input path provided from command line
+    run_directory = str(sys.argv[1])
+    input_path = os.path.join('intermediate', run_directory)
 
-    # Read in run manager file
-    run_manager_file = str(sys.argv[1])
+    # Read in .csv
+    run_details = pd.read_csv(os.path.join(input_path, 'run_manager_explicit_list.csv'))
 
-# Init Constants =============================================================================================
+    # Get tasks asking for either tasmin or tasmax ======================================
+    run_details = run_details[(run_details['Variable'] == 'tasrange') | (run_details['Variable'] == 'tasskew')].copy()
 
-    # Run specs
-    # target_model = 'GFDL-ESM4'
-    target_model = 'MPI-ESM1-2-HR'
-    target_scenario = 'ssp245'
-    target_ensemble = 'r1i1p1f1'
-    hist_model = 'W5E5v2'
-    # Temporal resolution of data
-    time_res = 'monthly'
-    print("====================================================================", flush=True)
-    print("Creating tasmin and tasmax", flush=True)
-    print("====================================================================", flush=True)
+    # Read encoding settings
+    encoding, reset_chunksizes = utils.get_encoding(os.path.join('input', run_name))
 
+    # Get attributes
+    tasmin_attributes, global_monthly_attributes, global_daily_attributes = utils.get_attributes('tasmin', os.path.join('input', run_name))
+    tasmax_attributes, _, _ = utils.get_attributes('tasmax', os.path.join('input', run_name))
 
-    # Input (only doing monthly data in this script for now)
-    # data_path = '/rcfs/projects/gcims/models/basd/outputs/CanESM5_W5E5v2'
-    data_path = f'/rcfs/projects/gcims/models/basd/outputs/{hist_model}/{target_model}/{target_scenario}'
-    # Bias Adjusted
-    tas_ba_name = os.path.join('ba', f'{target_model}_{target_ensemble}_{hist_model}_{target_scenario}_tas_global_{time_res}_2015_2100.nc')
-    tasrange_ba_name = os.path.join('ba', f'{target_model}_{target_ensemble}_{hist_model}_{target_scenario}_tasrange_global_{time_res}_2015_2100.nc')
-    tasskew_ba_name = os.path.join('ba', f'{target_model}_{target_ensemble}_{hist_model}_{target_scenario}_tasskew_global_{time_res}_2015_2100.nc')
-    # Bias Adjusted and Downscaled
-    tas_basd_name = os.path.join('basd', f'{target_model}_{target_ensemble}_{hist_model}_{target_scenario}_tas_global_{time_res}_2015_2100.nc')
-    tasrange_basd_name = os.path.join('basd', f'{target_model}_{target_ensemble}_{hist_model}_{target_scenario}_tasrange_global_{time_res}_2015_2100.nc')
-    tasskew_basd_name = os.path.join('basd', f'{target_model}_{target_ensemble}_{hist_model}_{target_scenario}_tasskew_global_{time_res}_2015_2100.nc')
-
-    # Output
-    # Bias Adjusted
-    tasmin_ba_name = os.path.join('ba', f'{target_model}_{target_ensemble}_{hist_model}_{target_scenario}_tasmin_global_{time_res}_2015_2100.nc')
-    tasmax_ba_name = os.path.join('ba', f'{target_model}_{target_ensemble}_{hist_model}_{target_scenario}_tasmax_global_{time_res}_2015_2100.nc')
-    # Bias Adjusted and Downscaled
-    tasmin_basd_name = os.path.join('basd', f'{target_model}_{target_ensemble}_{hist_model}_{target_scenario}_tasmin_global_{time_res}_2015_2100.nc')
-    tasmax_basd_name = os.path.join('basd', f'{target_model}_{target_ensemble}_{hist_model}_{target_scenario}_tasmax_global_{time_res}_2015_2100.nc')
-
-
-# Begin Dask =============================================================================================
-    # conduct adjustment in parallel, and save netCDF to output file
-    dask.config.set({'temporary_directory': '/scratch/'})
-    with LocalCluster(processes=True, threads_per_worker=1) as cluster, Client(cluster) as client:
-        # Setting up dask.Client so that I can ssh into the dashboard
-        port = client.scheduler_info()['services']['dashboard']
-        host = client.run_on_scheduler(socket.gethostname)
-        print(f"ssh -N -L 8000:{host}:{port} prim232@deception03.pnl.gov", flush=True)
-
-        # NetCDF encoding
-        output_encoding = {'missing_value': 1e+20, '_FillValue': 1e+20}
-
-        # Bias Adjusted Data first
-        # Open data
-        tas_ba = xr.open_mfdataset(os.path.join(data_path, tas_ba_name), chunks={'time': 100}).transpose('time', 'lat', 'lon')
-        tasrange_ba = xr.open_mfdataset(os.path.join(data_path, tasrange_ba_name), chunks={'time': 100}).transpose('time', 'lat', 'lon')
-        tasskew_ba = xr.open_mfdataset(os.path.join(data_path, tasskew_ba_name), chunks={'time': 100}).transpose('time', 'lat', 'lon')
-
-        # Create tasmin and tasmax
-        mult_data = da.map_blocks(np.multiply, tasskew_ba['tasskew'].data, tasrange_ba['tasrange'].data)
-        sub_data = da.map_blocks(np.subtract, tas_ba['tas'].data, mult_data)
-
-        # Create and save tasmin
-        tasmin = tas_ba.copy()
-        tasmin['tas'].data = sub_data
-        tasmin = tasmin.rename(tas = 'tasmin').compute()
-        write_job = tasmin[['time', 'lat', 'lon', 'tasmin']].to_netcdf(os.path.join(data_path, tasmin_ba_name), encoding = {'tasmin': output_encoding}, compute=True)
-        progress(write_job)
-        tasmin.close()
-
-        # Create and save tasmax
-        sum_data = da.map_blocks(np.subtract, tasrange_ba['tasrange'].data, sub_data)
-        tasmax = tas_ba.copy()
-        tasmax['tas'].data = sub_data
-        tasmax = tasmax.rename(tas = 'tasmax').compute()
-        write_job = tasmax[['time', 'lat', 'lon', 'tasmax']].to_netcdf(os.path.join(data_path, tasmax_ba_name), encoding = {'tasmax': output_encoding}, compute=True)
-        progress(write_job)
-        tasmax.close()
-
-        # Close
-        tas_ba.close()
-        tasrange_ba.close()
-        tasskew_ba.close()
-
-        # Now Bias Adjusted and Downscaled
-        # Open Data
-        tas_basd = xr.open_mfdataset(os.path.join(data_path, tas_basd_name), chunks={'time': 100}).transpose('time', 'lat', 'lon')
-        tasrange_basd = xr.open_mfdataset(os.path.join(data_path, tasrange_basd_name), chunks={'time': 100}).transpose('time', 'lat', 'lon')
-        tasskew_basd = xr.open_mfdataset(os.path.join(data_path, tasskew_basd_name), chunks={'time': 100}).transpose('time', 'lat', 'lon')
-
-        # Create tasmin and tasmax
-        mult_data = da.map_blocks(np.multiply, tasskew_basd['tasskew'].data, tasrange_basd['tasrange'].data)
-        sub_data = da.map_blocks(np.subtract, tas_basd['tas'].data, mult_data)
-
-        # Create and save tasmin
-        tasmin = tas_basd.copy()
-        tasmin['tas'].data = sub_data
-        tasmin = tasmin.rename(tas = 'tasmin').compute()
-        write_job = tasmin[['time', 'lat', 'lon', 'tasmin']].to_netcdf(os.path.join(data_path, tasmin_basd_name), encoding = {'tasmin': output_encoding}, compute=True)
-        progress(write_job)
-        tasmin.close()
-
-        # Create and save tasmax
-        sum_data = da.map_blocks(np.subtract, tasrange_basd['tasrange'].data, sub_data)
-        tasmax = tas_basd.copy()
-        tasmax['tas'].data = sub_data
-        tasmax = tasmax.rename(tas = 'tasmax').compute()
-        write_job = tasmax[['time', 'lat', 'lon', 'tasmax']].to_netcdf(os.path.join(data_path, tasmax_basd_name), encoding = {'tasmax': output_encoding}, compute=True)
-        progress(write_job)
-        tasmax.close()
-
-        # Close
-        tas_basd.close()
-        tasrange_basd.close()
-        tasskew_basd.close()
-
-
-    print(f'YAY==================================================================================================')
+    # Get the available models, scenarios, and ensembles (if available)
+    if run_details.iloc[0].stitched:
+        create_tasmin_tasmax_stitched(run_details)
+    else:
+        create_tasmin_tasmax_CMIP(
+            run_details, encoding, reset_chunk_sizes, 
+            tasmin_attributes, tasmax_attributes,
+            global_monthly_attributes, global_daily_attributes
+        )
