@@ -90,7 +90,7 @@ def create_tasrange_tasskew_stitched(run_details):
 
 def create_tasrange_tasskew_CMIP(run_details, output_path):
     # List of all models, scenarios and ensemble members being used
-    scenarios = np.unique(run_details.Scenario.values).append('historical')
+    scenarios = np.append( np.unique(run_details.Scenario.values), ['historical'] )
     esms = np.unique(run_details.ESM.values)
     ensembles = np.unique(run_details.Ensemble.values)
 
@@ -99,7 +99,6 @@ def create_tasrange_tasskew_CMIP(run_details, output_path):
             for ensemble in ensembles:
                 print(f'Creating tasrange and tasskew for {esm} {scenario}')
                 # Get input location
-                # TODO: What to do for pangeo data
                 current_task = run_details[
                     (run_details['ESM'] == esm) &
                     (run_details['Scenario'] == scenario) &
@@ -271,7 +270,7 @@ def create_tasrange_tasskew_pangeo(output_path, esm, scenario, ensemble):
 
 if __name__ == "__main__":
 
-# Read in run details ================================================================
+    # Read in run details ================================================================
     # Input path provided from command line
     run_directory = str(sys.argv[1])
     input_path = os.path.join('intermediate', run_directory)
@@ -279,10 +278,10 @@ if __name__ == "__main__":
     # Read in .csv
     run_details = pd.read_csv(os.path.join(input_path, 'run_manager_explicit_list.csv'))
 
-# Get tasks asking for either tasmin or tasmax ======================================
+    # Get tasks asking for either tasmin or tasmax ======================================
     run_details = run_details[(run_details['Variable'] == 'tasrange') | (run_details['Variable'] == 'tasskew')].copy()
 
-# Get the available models, scenarios, and ensembles (if available)
+    # Get the available models, scenarios, and ensembles (if available)
     if run_details.iloc[0].stitched:
         create_tasrange_tasskew_stitched(run_details)
     else:
