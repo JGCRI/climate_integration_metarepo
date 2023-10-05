@@ -73,6 +73,7 @@ def create_tasrange_tasskew_stitched(run_details):
                 assert len(tasrange_files) == 0, 'tasrange files already exist'
                 tasrange_data.to_netcdf(os.path.join(esm_input_location, f'stitched_{esm}_tasrange_{scenario}.nc'), compute=True)
             except AssertionError:
+                print('Warning, tasrange files already exist')
                 pass
 
             # If tasskew files don't already exist, create them
@@ -81,9 +82,11 @@ def create_tasrange_tasskew_stitched(run_details):
                 assert len(tasskew_files) == 0, 'tasskew files already exist'
                 tasskew_data.to_netcdf(os.path.join(esm_input_location, f'stitched_{esm}_tasskew_{scenario}.nc'), compute=True)
             except AssertionError:
+                print('Warning, tasskew files already exist')
                 pass
             ...
         ...
+
 
 def create_tasrange_tasskew_CMIP(run_details, output_path):
     # List of all models, scenarios and ensemble members being used
@@ -142,6 +145,7 @@ def create_tasrange_tasskew_CMIP(run_details, output_path):
                     assert len(tasrange_files) == 0, 'tasrange files already exist'
                     tasrange_data.to_netcdf(os.path.join(esm_input_location, f'tasrange_day_{esm}_{scenario}_{ensemble}.nc'), compute=True)
                 except AssertionError:
+                    print('Warning, tasrange files already exist')
                     pass
 
                 # If tasskew files don't already exist, create them
@@ -150,6 +154,7 @@ def create_tasrange_tasskew_CMIP(run_details, output_path):
                     assert len(tasskew_files) == 0, 'tasskew files already exist'
                     tasskew_data.to_netcdf(os.path.join(esm_input_location, f'tasskew_day_{esm}_{scenario}_{ensemble}.nc'), compute=True)
                 except AssertionError:
+                    print('Warning, tasskew files already exist')
                     pass
 
                 ...
