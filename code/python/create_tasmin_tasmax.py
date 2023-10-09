@@ -34,6 +34,9 @@ def create_general_CMIP(
                         full_out_path, encoding, reset_chunk_sizes, 
                         tasmin_attributes, tasmax_attributes, global_attributes
                     ):
+    # Print current creation step
+    print(f'Creating:\n\t- {tasmin_file_name}\n\t- {tasmax_file_name}\n\t- at {full_out_path}')
+
     # Open data
     tas_data = xr.open_mfdataset(os.path.join(full_out_path, tas_file_name))
     tasrange_data = xr.open_mfdataset(os.path.join(full_out_path, tasrange_file_name))
