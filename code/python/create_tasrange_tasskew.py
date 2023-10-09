@@ -99,11 +99,17 @@ def create_tasrange_tasskew_CMIP(run_details, output_path):
             for ensemble in ensembles:
                 print(f'Creating tasrange and tasskew for {esm} {scenario}')
                 # Get input location
-                current_task = run_details[
-                    (run_details['ESM'] == esm) &
-                    (run_details['Scenario'] == scenario) &
-                    (run_details['Ensemble'] == ensemble)
-                ]
+                if scenario == 'historical':
+                    current_task = run_details[
+                        (run_details['ESM'] == esm) &
+                        (run_details['Ensemble'] == ensemble)
+                    ]
+                else:
+                    current_task = run_details[
+                        (run_details['ESM'] == esm) &
+                        (run_details['Scenario'] == scenario) &
+                        (run_details['Ensemble'] == ensemble)
+                    ]
                 esm_input_location = current_task['ESM_Input_Location'].values[0]
                 using_pangeo = pd.isna(esm_input_location)
                 if using_pangeo:
@@ -138,11 +144,15 @@ def create_tasrange_tasskew_CMIP(run_details, output_path):
                 tasrange_data = tasrange_array.to_dataset(name='tasrange')
                 tasskew_data = tasskew_array.to_dataset(name='tasskew')
 
+                # First and last day in data as string for file name
+                start_str = np.min(pd.DatetimeIndex(tas_data['time'].values)).strftime('%Y%m%d')
+                end_str = np.max(pd.DatetimeIndex(tas_data['time'].values)).strftime('%Y%m%d')
+
                 # If tasrange files don't already exist, create them
                 try:
                     tasrange_files = glob.glob(os.path.join(esm_input_location, f'tasrange_day_{esm}_{scenario}_{ensemble}_*.nc'))
                     assert len(tasrange_files) == 0, 'tasrange files already exist'
-                    tasrange_data.to_netcdf(os.path.join(esm_input_location, f'tasrange_day_{esm}_{scenario}_{ensemble}.nc'), compute=True)
+                    tasrange_data.to_netcdf(os.path.join(esm_input_location, f'tasrange_day_{esm}_{scenario}_{ensemble}_{start_str}-{end_str}.nc'), compute=True)
                 except AssertionError:
                     print('Warning, tasrange files already exist')
                     pass
@@ -151,7 +161,7 @@ def create_tasrange_tasskew_CMIP(run_details, output_path):
                 try:
                     tasskew_files = glob.glob(os.path.join(esm_input_location, f'tasskew_day_{esm}_{scenario}_{ensemble}_*.nc'))
                     assert len(tasskew_files) == 0, 'tasskew files already exist'
-                    tasskew_data.to_netcdf(os.path.join(esm_input_location, f'tasskew_day_{esm}_{scenario}_{ensemble}.nc'), compute=True)
+                    tasskew_data.to_netcdf(os.path.join(esm_input_location, f'tasskew_day_{esm}_{scenario}_{ensemble}_{start_str}-{end_str}.nc'), compute=True)
                 except AssertionError:
                     print('Warning, tasskew files already exist')
                     pass
