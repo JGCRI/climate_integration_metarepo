@@ -1,0 +1,19 @@
+# Ignore all files and directories
+*
+
+# Not the .gitignore
+!.gitignore
+
+# Don't ignore readme
+!README.txt
+
+# Don't ignore test_run
+!test_run
+!test_run/*
+
+# Don't ignore test_data
+!test_data
+!test_data/*
+!test_data/obs/*
+!test_data/sim/*
+
