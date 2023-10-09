@@ -1,9 +1,11 @@
 ﻿ESM,ESM_Input_Location,Output_Location,Reference_Dataset,Reference_Input_Location,Variable,Scenario,Ensemble,target_period,application_period,daily,monthly,stitched
-CanESM5,/rcfs/projects/gcims/models/basd/stitched_data/gcam_ref,/rcfs/projects/gcims/models/basd/outputs,W5E5v2,/rcfs/projects/gcims/data/climate/W5E5v2/pr,pr,GCAM~hectorUI1~1,,1980-2014,2015-2100,TRUE,TRUE,TRUE
+model-name,input/test_data/sim,output/test-output,obs-hist,input/test_data/obs,pr,scenario-name,ensemble-name,1979-2014,2065-2100,TRUE,TRUE,FALSE
 ,,,,,tas,,,,,,,
 ,,,,,hurs,,,,,,,
 ,,,,,sfcWind,,,,,,,
 ,,,,,rsds,,,,,,,
 ,,,,,rlds,,,,,,,
+,,,,,ps,,,,,,,
+,,,,,prsnratio,,,,,,,
 ,,,,,tasmin,,,,,,,
 ,,,,,tasmax,,,,,,,

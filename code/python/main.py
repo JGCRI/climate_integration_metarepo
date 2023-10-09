@@ -25,12 +25,12 @@ if __name__ == "__main__":
 
     # Task index from SLURM array to run specific variable and model combinations
     task_id = int(sys.argv[1])
-    # Task list csv
-    task_list = str(sys.argv[2])
+    # Name of run directory
+    run_name = str(sys.argv[2])
     # Extract task details
-    task_details = pd.read_csv(os.path.join(intermediate_path, task_list)).iloc[task_id]
+    task_details = pd.read_csv(os.path.join(intermediate_path, run_name, 'run_manager_explicit_list.csv')).iloc[task_id]
     # Extract Dask settings
-    dask_settings = pd.read_csv(os.path.join(input_path, 'dask_parameters.csv')).iloc[0]
+    dask_settings = pd.read_csv(os.path.join(input_path, run_name, 'dask_parameters.csv')).iloc[0]
 
 # Check if using Pangeo =======================================================================================
 
@@ -75,13 +75,13 @@ if __name__ == "__main__":
 
         if using_pangeo:
             # Run pangeo script
-            basd_pangeo(task_details)
+            basd_pangeo(task_details, run_name)
         elif using_stitches:
             # Run stitches script
-            basd_stitches(task_details)
+            basd_stitches(task_details, run_name)
         else:
             # Run downloaded data script
-            basd_downloaded(task_details)
+            basd_downloaded(task_details, run_name)
 
         client.close()
         cluster.close()

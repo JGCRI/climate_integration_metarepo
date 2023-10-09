@@ -1,0 +1,2 @@
+﻿time_chunk_size,lat_chunk_size,lon_chunk_size,dask_temp_directory
+50,5,5,/scratch/

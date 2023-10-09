@@ -1,0 +1,2 @@
+zlib,shuffle,complevel,fletcher32,contiguous,time_chunk,lat_chunk,lon_chunk,dtype,missing_value,_FillValue
+TRUE,TRUE,5,FALSE,FALSE,1,max,max,float32,1.00E+20,1.00E+20

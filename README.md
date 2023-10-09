@@ -90,13 +90,15 @@ To use this repo, we'll create an input file that lists all the models, ensemble
 
 2. Open `slurm_parameters.csv` and enter details for the slurm scheduler that will be used for your jobs.
 
-3. The file `encoding.csv` describes how the output NetCDF files will be encoded when saved. Mostly the defaults should be good for most applications. You may in particular want to change: 
+3. The `attributes.csv` file allows you to specify the metadata in the output NetCDF files, both global, and variable-specific attributes. The file as found in the repo give examples of what might be included. However, there is great flexibility here. To add a new tag, add a column with the right name, and assign its value in any row you want it included in.
+
+4. The file `encoding.csv` describes how the output NetCDF files will be encoded when saved. Mostly the defaults should be good for most applications. You may in particular want to change: 
     * `complevel`, which will change the level of compression applied to your data
     * `time_chunk`, `lat_chunk`, `lon_chunk`, which changes the chunk sizes of each dimension in the output NetCDF. This can effect how other programs interact and read in the data consequently. You can either enter an integer, or "max", which will use the full size of the that dimension in the given data.
 
-4. The file `dask_parameters.csv` changes how [Dask](https://www.dask.org/), the Python package responsible for the parallelization in these processes, will split up (i.e. "chunk") the data. For machines with smaller RAM, you may want to lower from the defaults. The `dask_temp_directory` option gives you a chance to change where Dask stores intermediate files. For example, some computing clusters have a `/scratch/` directory where it is ideal to store temporary files that we don't want to be accidentally stored long term.
+5. The file `dask_parameters.csv` changes how [Dask](https://www.dask.org/), the Python package responsible for the parallelization in these processes, will split up (i.e. "chunk") the data. For machines with smaller RAM, you may want to lower from the defaults. The `dask_temp_directory` option gives you a chance to change where Dask stores intermediate files. For example, some computing clusters have a `/scratch/` directory where it is ideal to store temporary files that we don't want to be accidentally stored long term.
 
-5. The file `variable_parameters.csv` may be edited, though the values set in the repo will be good for most cases, and more details are given in the file itself.
+6. The file `variable_parameters.csv` may be edited, though the values set in the repo will be good for most cases, and more details are given in the file itself.
 
 You may also create more "run manager" files that can be specific to a given run. Simply duplicate `run_manager.csv` and name it something informative, and edit it accordingly. The file `test_run_manager.csv` is such a file and can be used as an example and uses small data files included in this repo.
 

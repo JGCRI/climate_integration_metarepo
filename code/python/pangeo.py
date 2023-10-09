@@ -40,7 +40,7 @@ lat_chunk = None
 lon_chunk = None
 
 # Function to manage steps for running bias adjustment and downscaling using data accessed from Pangeo.
-def basd_pangeo(run_object):
+def basd_pangeo(run_object, run_name):
     """
     Function to manage steps for running bias adjustment and downscaling using data accessed from Pangeo.
     """
@@ -55,17 +55,17 @@ def basd_pangeo(run_object):
     reference_url, application_url = get_pangeo_urls(run_object)
 
     # 4. Get and extract parameters
-    params = utils.get_parameters(run_object, INPUT_PATH)
+    params = utils.get_parameters(run_object, os.path.join(INPUT_PATH, run_name))
 
     # 5. Read encoding settings
-    encoding, reset_chunksizes = utils.get_encoding(run_object, INPUT_PATH)
+    encoding, reset_chunksizes = utils.get_encoding(os.path.join(INPUT_PATH, run_name))
 
     # 6. Read attributes
-    variable_attributes, global_monthly_attributes, global_daily_attributes = utils.get_attributes(run_object, INPUT_PATH)
+    variable_attributes, global_monthly_attributes, global_daily_attributes = utils.get_attributes(run_object.Variable, os.path.join(INPUT_PATH, run_name))
 
     # 7. Read Dask settings
     global time_chunk, lat_chunk, lon_chunk
-    time_chunk, lat_chunk, lon_chunk, dask_temp_directory = utils.get_chunk_sizes(INPUT_PATH)
+    time_chunk, lat_chunk, lon_chunk, dask_temp_directory = utils.get_chunk_sizes(os.path.join(INPUT_PATH, run_name))
 
     # 8. Get Data
     # Download data from pangeo
