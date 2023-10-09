@@ -5,8 +5,6 @@ model-name,input/test_data/sim,output/test-output,obs-hist,input/test_data/obs,p
 ,,,,,sfcWind,,,,,,,
 ,,,,,rsds,,,,,,,
 ,,,,,rlds,,,,,,,
-,,,,,tasrange,,,,,,,
-,,,,,tasskew,,,,,,,
 ,,,,,ps,,,,,,,
 ,,,,,prsnratio,,,,,,,
 ,,,,,tasmin,,,,,,,
