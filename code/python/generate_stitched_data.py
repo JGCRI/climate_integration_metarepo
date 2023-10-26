@@ -129,7 +129,7 @@ if __name__ == "__main__":
     run_directory = str(sys.argv[1])
 
     # Input file path
-    input_files_path = os.path.join('../../input', run_directory)
+    input_files_path = os.path.join('input', run_directory)
 
     # Reading the run details
     run_manager_df = pd.read_csv(os.path.join(input_files_path, 'run_manager.csv'))
