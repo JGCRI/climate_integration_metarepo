@@ -7,9 +7,6 @@ Lots to update here, rough outline
 import os
 import sys
 
-import pangeo
-import xarray as xr
-
 import pkg_resources
 import pandas as pd
 import numpy as np
@@ -38,6 +35,7 @@ def get_archive():
     # Return
     return data
 
+
 def interp(years, values):
     min_year = min(years); max_year = max(years)
     new_years = np.arange(min_year, max_year+1)
@@ -56,12 +54,12 @@ def interp(years, values):
 
     return new_years, new_values
 
-def format_data_for_stitches(interped_data, model, ensemble, experiment):
+
+def format_data_for_stitches(interped_data, experiment):
     # Variable, model, ensemble, experiment columns
-    # TODO: Edit how these can be input
     interped_data['variable'] = 'tas'
-    interped_data['model'] = model
-    interped_data['ensemble'] = ensemble
+    interped_data['model'] = ''
+    interped_data['ensemble'] = ''
     interped_data['experiment'] = experiment
 
     # Convert to tas anomaly
@@ -72,6 +70,7 @@ def format_data_for_stitches(interped_data, model, ensemble, experiment):
     
     # Return
     return formatted_traj
+
 
 def get_recipe(target_data, archive_data, variables):
     # Get recipe (some randomness involved in fit, so try multiple times)
@@ -89,7 +88,8 @@ def get_recipe(target_data, archive_data, variables):
     
     return stitches_recipe
 
-def generate_stitched(esm, variables, time_series, years, ensemble, experiment, trajectory_model, output_path, chunk_sizes = 9):
+
+def generate_stitched(esm, variables, time_series, years, experiment,  output_path, chunk_sizes = 9):
     # Get full archive data
     data = get_archive()
     # Get archive data for specific model
@@ -100,8 +100,8 @@ def generate_stitched(esm, variables, time_series, years, ensemble, experiment, 
     years, temps = interp(years, time_series)
     interped_data = pd.DataFrame({'year': years, 'value': temps})
 
-    # Format data into STICHES format
-    formatted_data = format_data_for_stitches(interped_data, trajectory_model, ensemble, experiment)
+    # Format data into STITCHES format
+    formatted_data = format_data_for_stitches(interped_data, experiment)
 
     # Chunk data
     target_chunk = fxp.chunk_ts(formatted_data, n=chunk_sizes)
@@ -116,40 +116,42 @@ def generate_stitched(esm, variables, time_series, years, ensemble, experiment, 
     return outputs
 
 
+def remove_nas(x):
+    return x[~pd.isnull(x)]
+
+
 if __name__ == "__main__":
 
 # Define Constants ----------------------------------------
     # TODO: This stuff needs to be read in from user input
 
-    # Where to save data
-    out_path = str(sys.argv[1])
+    # Name of the current experiment directory
+    run_directory = str(sys.argv[1])
 
-    # This will somehow need to be passed in in a standardized way in the future
-    data_path = str(sys.argv[2])
+    # Input file path
+    input_files_path = os.path.join('input', run_directory)
 
-    # Model Choice
-    esm = 'MRI-ESM2-0'
-    # esm = 'MIROC6'
+    # Reading the run details
+    run_manager_df = pd.read_csv(os.path.join(input_files_path, 'run_manager.csv'))
 
-    # Experiment Name
-    experiment = 'GCAM_ref'
+    # Extracting needed infor and formatting the run details
+    esms = remove_nas(run_manager_df['ESM'].values)
+    esm_input_paths = remove_nas(run_manager_df['ESM_Input_Location'].values)
+    variables = remove_nas(run_manager_df['Variable'].values)
+    scenarios = remove_nas(run_manager_df['Scenario'].values)
 
-    # Ensemble Name
-    ensemble = 'hectorUI1'
+    # Reading in the tas trajectories data
+    trajectories_data = pd.read_csv(os.path.join(input_files_path, 'trajectories.csv'))
 
-    # Source Name
-    trajectory_source = 'Hector'
+    # Iterate through each requested ESM and Experiment/Scenario
+    for i, esm in enumerate(esms):
+        for j, scenario in enumerate(scenarios):
+            print(f'{esm} with scenario {scenario} being saved to {esm_input_paths[i]}')
 
-    # Variables Output
-    variables = ['tas', 'pr', 'hurs', 'sfcWind', 'tasmin', 'tasmax', 'rlds', 'rsds']
+            # Get trajectory data for the given scenario
+            time_series_df = trajectories_data[['year', scenario]].dropna()
+            tas_time_series = np.array(time_series_df.iloc[:,1].values)
+            years = np.array( time_series_df.iloc[:,0].values ).astype(int)
 
-    # Getting our trajectory to use (in this case GCAM reference scenario)
-    file_name = 'gcam6_ref_default.csv'
-    time_series_df = pd.read_csv(os.path.join(data_path, file_name))
-
-    # Getting the time series and years as numpy arrays
-    tas_time_series = np.array(time_series_df.temp.values)
-    years = np.array( time_series_df.year.values ).astype(int)
-
-    # Run STITCHING process
-    generate_stitched(esm, variables, tas_time_series, years, ensemble, experiment, trajectory_source, out_path)
+            # Generate STITCHED data for ESM and Experiment
+            generate_stitched(esm, variables, tas_time_series, years, scenario, esm_input_paths[i])

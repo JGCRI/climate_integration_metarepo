@@ -1,0 +1,15 @@
+﻿variable,long_name,units,standard_name,original_name,table_id,history,contact,creation_date,institution,model
+global_daily,,,,,day,"STITCHED data, modified using BASD",email,28-Aug-23,PNNL/JGCRI,MRI-ESM2-0
+global_monthly,,,,,mon,"STITCHED data, modified using BASD",email,29-Aug-23,PNNL/JGCRI,MRI-ESM2-0
+hurs,Near-Surface Relative Humidty,%,relative_humidity,hurs,,,,,,
+tas,Near-Surface Air Temperature,K,air_temperature,tas,,,,,,
+pr,Precipitation,kg/m2/s,precipitation_flux,pr,,,,,,
+sfcWind,Daily-Mean Near-Surface Wind Speed,m/s,wind_speed,sfcWind,,,,,,
+rsds,Surface Downwelling Shortwave Radiation,W/m2,surface_downwelling_shortwave_flux_in_air,rsds,,,,,,
+rlds,Surface Downwelling Longwave Radiation,W/m2,surface_downwelling_longwave_flux_in_air,rlds,,,,,,
+tasrange,Range of Daily Near-Surface Air Temperature Cycle,K,air_temperature_range,tasrange,,,,,,
+tasskew,Skewness of Daily Near-Surface Air Temperature Cycle,1,air_temperature_skewness,tasskew,,,,,,
+ps,Surface Air Pressure,Pa,surface_air_pressure,ps,,,,,,
+prsnratio,Ratio of Snowfall Flux to Total Precipitation,1,snowfall_precipitation_ratio,prsnratio,,,,,,
+tasmin,Daily Minimum Near-Surface Air Temperature,K,mininum_air_temperature,tasmin,,,,,,
+tasmax,Daily Maximum Near-Surface Air Temperature,K,maxinum_air_temperature,tasmax,,,,,,
