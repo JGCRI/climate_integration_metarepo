@@ -1,0 +1,12 @@
+﻿variable,distribution,lower_bound,lower_threshold,upper_bound,upper_threshold,trend_preservation,n_iterations,detrend,if_all_invalid_use,step_size,months,halfwin_ubc,n_quantiles,randomization_seed,max_change_factor,max_adjustment_factor,parametric,unconditional_ccs_transfer,trendless_bound_frequency,p_value_eps,adjust_p_values
+hurs,beta,0,0.01,100,99.99,bounded,10,,0,,,,,,,,,,,,
+pr,gamma,0,1.16E-06,,,mixed,10,,0,,,,,,,,,,,,
+tas,normal,,,,,additive,10,TRUE,0,,,,,,,,,,,,
+tasmax,,,,,,,10,,0,,,,,,,,,,,,
+tasmin,,,,,,,10,,0,,,,,,,,,,,,
+rlds,normal,,,,,additive,10,TRUE,0,,,,,,,,,,,,
+rsds,beta,0,0.0001,1,0.9999,bounded,10,,0,,,15,,,,,,,,,
+sfcWind,weibull,0,0.01,,,mixed,10,,0,,,,,,,,,,,,
+ps,,,,,,,10,,0,,,,,,,,,,,,
+tasrange,rice,0,0.01,,,mixed,10,,0,,,,,,,,,,,,
+tasskew,beta,0,0.0001,1,0.9999,bounded,10,,0,,,,,,,,,,,,

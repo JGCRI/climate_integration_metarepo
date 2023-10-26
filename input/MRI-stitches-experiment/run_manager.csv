@@ -1,0 +1,9 @@
+﻿ESM,ESM_Input_Location,Output_Location,Reference_Dataset,Reference_Input_Location,Variable,Scenario,Ensemble,target_period,application_period,daily,monthly,stitched
+MRI-ESM2-0,<path to location to save stitched data (and then read in for basd)>,<path to save basd data to>,W5E5v2,<path where reference dataset is saved>,pr,GCAM6-Ref,,1980-2014,2015-2100,TRUE,TRUE,TRUE
+,,,,,tas,rcp45,,,,,,
+,,,,,hurs,rcp60,,,,,,
+,,,,,sfcWind,,,,,,,
+,,,,,rsds,,,,,,,
+,,,,,rlds,,,,,,,
+,,,,,tasmin,,,,,,,
+,,,,,tasmax,,,,,,,

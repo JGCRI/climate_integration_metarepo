@@ -7,9 +7,13 @@
 # Don't ignore readme
 !README.txt
 
-# Don't ignore test_run
+# Don't ignore test_run directory (used as an example)
 !test_run
 !test_run/*
+
+# Don't ignore MRI-stitches-experiment directory (used as an example)
+!MRI-stitches-experiment
+!MRI-stitches-experiment/*
 
 # Don't ignore test_data
 !test_data
