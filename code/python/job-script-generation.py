@@ -213,8 +213,15 @@ if __name__ == "__main__":
         job_file.writelines('# Timing\n')
         job_file.writelines('start=`date +%s.%N`\n\n')
 
-        job_file.writelines('# Run tasrange and tasskew creation job\n')
-        job_file.writelines(f"range_skew_id=$(sbatch --parsable intermediate/{run_name}/tasrange_tasskew.job)\n\n")
+        if stitched:
+            job_file.writelines('# Run STITCHED data generation script\n')
+            job_file.writelines(f"stitch_id=$(sbatch --parsable intermediate/{run_name}/stitch.job)\n\n")
+
+            job_file.writelines('# Run tasrange and tasskew creation job\n')
+            job_file.writelines(f"range_skew_id=$(sbatch --parsable --dependency=afterok:$stitch_id intermediate/{run_name}/tasrange_tasskew.job)\n\n")            
+        else:
+            job_file.writelines('# Run tasrange and tasskew creation job\n')
+            job_file.writelines(f"range_skew_id=$(sbatch --parsable intermediate/{run_name}/tasrange_tasskew.job)\n\n")
 
         job_file.writelines('# Run bias adjustment and downscaling\n')
         job_file.writelines(f"basd_id=$(sbatch --parsable --dependency=afterok:$range_skew_id intermediate/{run_name}/basd.job)\n\n")
@@ -226,3 +233,30 @@ if __name__ == "__main__":
         job_file.writelines('end=`date +%s.$N`\n')
         job_file.writelines('runtime=$( echo "($end - $start) / 60" | bc -l )\n')
         job_file.writelines('echo "Run completed in $runtime minutes"\n')
+
+    # Create bash file for generating STITCHED data
+    if stitched:
+        with open(os.path.join(intermediate_path, run_name, 'stitch.job'), 'w') as job_file:
+            job_file.writelines(f"#!/bin/bash\n\n\n")
+            job_file.writelines('# Slurm Settings\n')
+            job_file.writelines(f"#SBATCH --account={account}\n")
+            job_file.writelines(f"#SBATCH --partition={partition}\n")
+            job_file.writelines(f"#SBATCH --job-name={run_name}_stitch.job\n")
+            job_file.writelines(f"#SBATCH --time={time}\n")
+            job_file.writelines(f"#SBATCH --mail-type={mail_type}\n")
+            job_file.writelines(f"#SBATCH --mail-user={email}\n")
+            job_file.writelines(f"#SBATCH --output=.out/{run_name}_stitch.out\n\n\n")
+            job_file.writelines('# Load Modules\n')
+            job_file.writelines('module load gcc/11.2.0\n')
+            job_file.writelines('module load python/miniconda3.9\n')
+            job_file.writelines('source /share/apps/python/miniconda3.9/etc/profile.d/conda.sh\n\n')
+            job_file.writelines('# activate conda environment\n')
+            job_file.writelines(f'conda activate {conda_env}\n\n')
+            job_file.writelines('# Timing\n')
+            job_file.writelines('start=`date +%s.%N`\n\n')
+            job_file.writelines('# Run script\n')
+            job_file.writelines(f"python code/python/generate_stitched_data.py {run_name}\n\n")
+            job_file.writelines('# End timing and print runtime\n')
+            job_file.writelines('end=`date +%s.$N`\n')
+            job_file.writelines('runtime=$( echo "($end - $start) / 60" | bc -l )\n')
+            job_file.writelines('echo "Run completed in $runtime minutes"\n')
