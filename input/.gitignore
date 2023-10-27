@@ -1,6 +1,12 @@
 # Ignore all files and directories
 *
 
+!attributes.csv
+!dask_parameters.csv
+!encoding.csv
+!slurm_parameters.csv
+!variable_parameters.csv
+
 # Not the .gitignore
 !.gitignore
 
