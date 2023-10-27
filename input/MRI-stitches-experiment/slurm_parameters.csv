@@ -1,0 +1,8 @@
+﻿parameter,value
+account,<account ID>
+time,10:00:00
+partition,slurm
+max_concurrent,3
+email,<username>@<domain>
+mail-type,END
+conda_env,<conda_env_name>
