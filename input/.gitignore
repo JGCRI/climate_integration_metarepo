@@ -1,16 +1,6 @@
 # Ignore all files and directories
 *
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 429d730 (trying to remove dormant files)
-!attributes.csv
-!dask_parameters.csv
-!encoding.csv
-!slurm_parameters.csv
-!variable_parameters.csv
-
 # Not the .gitignore
 !.gitignore
 
