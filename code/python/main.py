@@ -14,8 +14,13 @@ import dask
 from dask.distributed import (Client, LocalCluster)
 import numpy as np
 import pandas as pd
+import warnings
 
 if __name__ == "__main__":
+
+# Ignore non-helpful warnings
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    warnings.filterwarnings('ignore', category=FutureWarning)
 
 # Paths =======================================================================================================
     intermediate_path = 'intermediate'
