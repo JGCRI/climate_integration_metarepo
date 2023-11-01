@@ -35,9 +35,14 @@ if __name__ == "__main__":
 # Check if using Pangeo =======================================================================================
 
     # Boolean will be true when no input location is given
-    using_pangeo = pd.isna(task_details.ESM_Input_Location)
+    using_pangeo = pd.isna(task_details.ESM_Input_Location) & ~(task_details.Variable in ['tasrange', 'tasskew'])
     # Boolean will be true when using STITCHED data
     using_stitches = task_details.stitched
+    # When trying to use pangeo for tasrange/tasskew, data will actually be saved in intermediate
+    if pd.isna(task_details.ESM_Input_Location) & (task_details.Variable in ['tasrange', 'tasskew']):
+        task_details.ESM_Input_Location = os.path.join(intermediate_path, run_name, 'tasrange_tasskew')
+
+
 
     # Check to see if a non-default dask temporary directory is requested
     # If so, set it using dask config

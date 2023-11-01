@@ -251,7 +251,7 @@ def set_names(run_object):
     output_mon_basd_file_name = f'{run_object.ESM}_{run_object.Ensemble}_{run_object.Reference_Dataset}_{run_object.Scenario}_{run_object.Variable}_global_monthly_{start}_{end}.nc'
     
     # Input location for observational reference dataset
-    input_ref_data_path = run_object.Reference_Input_Location
+    input_ref_data_path = os.path.join(run_object.Reference_Input_Location, run_object.Variable)
 
 
 # Function that creates new directories

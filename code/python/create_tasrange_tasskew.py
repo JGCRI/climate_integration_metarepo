@@ -25,6 +25,7 @@ import intake  # Used semi-secretly in pangeo
 import numpy as np
 import pandas as pd
 import xarray as xr
+import warnings
 
 
 def create_tasrange_tasskew_stitched(run_details):
@@ -97,7 +98,7 @@ def create_tasrange_tasskew_CMIP(run_details, output_path):
     for esm in esms:
         for scenario in scenarios:
             for ensemble in ensembles:
-                print(f'Creating tasrange and tasskew for {esm} {scenario}')
+                print(f'Creating tasrange and tasskew for {esm} {scenario}', flush=True)
                 # Get input location
                 if scenario == 'historical':
                     current_task = run_details[
@@ -116,8 +117,9 @@ def create_tasrange_tasskew_CMIP(run_details, output_path):
                     try:
                         create_tasrange_tasskew_pangeo(output_path, esm, scenario, ensemble)
                     except:
+                        raise
                         pass
-                    next
+                    continue
 
                 # Does tas, tasmin and tasmax exist?
                 try:
@@ -128,7 +130,7 @@ def create_tasrange_tasskew_CMIP(run_details, output_path):
                     assert len(tasmax_files) != 0, 'No tasmax files'
                     assert len(tasmin_files) != 0, 'No tasmin files'
                 except AssertionError:
-                    next
+                    continue
 
                 # Open data
                 tas_data = xr.open_mfdataset(tas_files)
@@ -208,7 +210,7 @@ def fetch_pangeo_table():
     out = out.rename(columns={"source_id": "model", "experiment_id": "experiment",
                                                 "member_id": "ensemble", "variable_id": "variable",
                                                 "zstore": "zstore", "table_id": "domain"}).copy()
-    out = (out.loc[out['experiment'].isin(exps)]).drop_duplicates().reset_index(drop=True).copy()
+    out = out.drop_duplicates().reset_index(drop=True).copy()
 
     return out
 
@@ -258,13 +260,18 @@ def create_tasrange_tasskew_pangeo(output_path, esm, scenario, ensemble):
     tasskew_data = tasskew_array.to_dataset(name='tasskew')
 
     # Create temp directory in intermediate output
-    os.mkdir(os.path.join(output_path, 'tasrange_tasskew'), exist_ok=True)
+    output_path = os.path.join(output_path, 'tasrange_tasskew')
+    os.makedirs(os.path.join(output_path), exist_ok=True)
+
+    # First and last day in data as string for file name
+    start_str = np.min(pd.DatetimeIndex(tas_data['time'].values)).strftime('%Y%m%d')
+    end_str = np.max(pd.DatetimeIndex(tas_data['time'].values)).strftime('%Y%m%d')
 
     # If tasrange files don't already exist, create them
     try:
         tasrange_files = glob.glob(os.path.join(output_path, f'tasrange_day_{esm}_{scenario}_{ensemble}_*.nc'))
         assert len(tasrange_files) == 0, 'tasrange files already exist'
-        tasrange_data.to_netcdf(os.path.join(output_path, f'tasrange_day_{esm}_{scenario}_{ensemble}.nc'), compute=True)
+        tasrange_data.to_netcdf(os.path.join(output_path, f'tasrange_day_{esm}_{scenario}_{ensemble}_{start_str}-{end_str}.nc'), compute=True)
     except AssertionError:
         pass
 
@@ -272,13 +279,17 @@ def create_tasrange_tasskew_pangeo(output_path, esm, scenario, ensemble):
     try:
         tasskew_files = glob.glob(os.path.join(output_path, f'tasskew_day_{esm}_{scenario}_{ensemble}_*.nc'))
         assert len(tasskew_files) == 0, 'tasskew files already exist'
-        tasskew_data.to_netcdf(os.path.join(output_path, f'tasskew_day_{esm}_{scenario}_{ensemble}.nc'), compute=True)
+        tasskew_data.to_netcdf(os.path.join(output_path, f'tasskew_day_{esm}_{scenario}_{ensemble}_{start_str}-{end_str}.nc'), compute=True)
     except AssertionError:
         pass
     ...
 
 
 if __name__ == "__main__":
+
+    # Ignore non-helpful warnings
+    warnings.filterwarnings("ignore", category=DeprecationWarning)
+    warnings.filterwarnings('ignore', category=FutureWarning)
 
     # Read in run details ================================================================
     # Input path provided from command line

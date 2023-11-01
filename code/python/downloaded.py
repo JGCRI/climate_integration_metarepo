@@ -157,8 +157,11 @@ def load_ba_data(run_object):
     obs_reference_data_pattern = f'{run_object.Variable}_*.nc'
 
     # Open data
+    print(f'Attempting to open {os.path.join(input_sim_data_path, sim_application_data_pattern)}', flush=True)
     sim_application_data = xr.open_mfdataset(os.path.join(input_sim_data_path, sim_application_data_pattern), chunks={'time': time_chunk})
+    print(f'Attempting to open {os.path.join(input_sim_data_path, sim_reference_data_pattern)}', flush=True)
     sim_reference_data = xr.open_mfdataset(os.path.join(input_sim_data_path, sim_reference_data_pattern), chunks={'time': time_chunk})
+    print(f'Attempting to open {os.path.join(input_ref_data_path, obs_reference_data_pattern)}', flush=True)
     obs_reference_data = xr.open_mfdataset(os.path.join(input_ref_data_path, obs_reference_data_pattern), chunks={'time': time_chunk})
 
     # Get application and target periods
@@ -217,7 +220,7 @@ def set_names(run_object):
     output_mon_basd_file_name = f'{run_object.ESM}_{run_object.Ensemble}_{run_object.Reference_Dataset}_{run_object.Scenario}_{run_object.Variable}_global_monthly_{start}_{end}.nc'
     
     # Input location for observational reference dataset
-    input_ref_data_path = run_object.Reference_Input_Location
+    input_ref_data_path = os.path.join(run_object.Reference_Input_Location, run_object.Variable)
 
     # Input location for simulated datasets
     input_sim_data_path = run_object.ESM_Input_Location
