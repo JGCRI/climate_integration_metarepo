@@ -198,14 +198,18 @@ def download_data(reference_url, application_url):
     Function for downloading pangeo data into a temporary directory
     """
     # Install CMIP6 data and store in a temp dir as .zarr
-    sim_application_data = fetch_nc(application_url)
-    write_job = sim_application_data.to_netcdf(os.path.join(temp_download_dir, 'sim_application_data.nc'), compute=True)
-    progress(write_job)
-    sim_reference_data = fetch_nc(reference_url)
-    write_job = sim_reference_data.to_netcdf(os.path.join(temp_download_dir, 'sim_reference_data.nc'), compute=True)
-    progress(write_job)
-    sim_application_data.close()
-    sim_reference_data.close()
+    try:
+        sim_application_data = fetch_nc(application_url)
+        write_job = sim_application_data.to_netcdf(os.path.join(temp_download_dir, 'sim_application_data.nc'), compute=True)
+        progress(write_job)
+        sim_reference_data = fetch_nc(reference_url)
+        write_job = sim_reference_data.to_netcdf(os.path.join(temp_download_dir, 'sim_reference_data.nc'), compute=True)
+        progress(write_job)
+        sim_application_data.close()
+        sim_reference_data.close()
+    except:
+        print('Could not download data from Pangeo', flush=True)
+        sys.exit(1)
 
 
 # Function for setting path and file names based on run details
@@ -283,19 +287,23 @@ def get_pangeo_urls(run_object):
 
     # TODO: Allow data for reference and application to not need to be purely historical
     #       or purely simulated
-    # Getting url for historical simulation data for given model/variable/etc
-    reference_url = pangeo_table[(pangeo_table['model'] == run_object.ESM) &
-                                (pangeo_table['variable'] == run_object.Variable) &
-                                (pangeo_table['domain'] == 'day') &
-                                (pangeo_table['experiment'] == 'historical') &
-                                (pangeo_table['ensemble'] == run_object.Ensemble)].copy().iloc[0].zstore
-    
-    # Getting url for future simulation data for given model/variable/etc
-    application_url = pangeo_table[(pangeo_table['model'] == run_object.ESM) &
-                                (pangeo_table['variable'] == run_object.Variable) &
-                                (pangeo_table['domain'] == 'day') &
-                                (pangeo_table['experiment'] == run_object.Scenario) &
-                                (pangeo_table['ensemble'] == run_object.Ensemble)].copy().iloc[0].zstore
+    try:
+        # Getting url for historical simulation data for given model/variable/etc
+        reference_url = pangeo_table[(pangeo_table['model'] == run_object.ESM) &
+                                    (pangeo_table['variable'] == run_object.Variable) &
+                                    (pangeo_table['domain'] == 'day') &
+                                    (pangeo_table['experiment'] == 'historical') &
+                                    (pangeo_table['ensemble'] == run_object.Ensemble)].copy().iloc[0].zstore
+        
+        # Getting url for future simulation data for given model/variable/etc
+        application_url = pangeo_table[(pangeo_table['model'] == run_object.ESM) &
+                                    (pangeo_table['variable'] == run_object.Variable) &
+                                    (pangeo_table['domain'] == 'day') &
+                                    (pangeo_table['experiment'] == run_object.Scenario) &
+                                    (pangeo_table['ensemble'] == run_object.Ensemble)].copy().iloc[0].zstore
+    except:
+        print('Was unable to find data on Pangeo', flush=True)
+        sys.exit(1)
     
     return reference_url, application_url
 
