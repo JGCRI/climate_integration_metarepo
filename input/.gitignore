@@ -27,4 +27,16 @@
 !test_data/*
 !test_data/obs/*
 !test_data/sim/*
+!test_data/obs/hurs/*
+!test_data/obs/pr/*
+!test_data/obs/prsnratio/*
+!test_data/obs/ps/*
+!test_data/obs/rlds/*
+!test_data/obs/rsds/*
+!test_data/obs/sfcWind/*
+!test_data/obs/tas/*
+!test_data/obs/tasmax/*
+!test_data/obs/tasmin/*
+!test_data/obs/tasrange/*
+!test_data/obs/tasskew/*
 
