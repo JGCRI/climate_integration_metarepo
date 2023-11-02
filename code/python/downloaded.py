@@ -78,6 +78,7 @@ def basd_downloaded(run_object, run_name):
     ba = basd.init_bias_adjustment(
         obs_reference_data, sim_reference_data, sim_application_data,
         run_object.Variable, params,
+        lat_chunk_size=lat_chunk, lon_chunk_size=lon_chunk,
         temp_path=temp_intermediate_dir, periodic=True
     )
 
@@ -141,9 +142,10 @@ def basd_downloaded(run_object, run_name):
     if ~run_object.daily:
         try:
             os.remove(os.path.join(output_ba_path, output_day_ba_file_name))
-            os.remove(os.path.join(output_ba_path, output_day_ba_file_name))
+            os.remove(os.path.join(output_basd_path, output_day_basd_file_name))
         except OSError as e:
             print(f"Error removing daily data")
+            pass
 
 
 # Load in datasets and trims to reference and application periods, and drops extra variables in the dataset

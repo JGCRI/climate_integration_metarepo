@@ -105,6 +105,7 @@ def basd_pangeo(run_object, run_name):
         init_output = ba, output_dir = output_ba_path,
         day_file = output_day_ba_file_name, month_file = output_mon_ba_file_name,
         clear_temp = True, encoding={run_object.Variable: encoding},
+        lat_chunk_size=lat_chunk, lon_chunk_size=lon_chunk,
         ba_attrs = global_daily_attributes, ba_attrs_mon = global_monthly_attributes, variable_attrs = variable_attributes
     )
 
@@ -156,7 +157,7 @@ def basd_pangeo(run_object, run_name):
     if ~run_object.daily:
         try:
             os.remove(os.path.join(output_ba_path, output_day_ba_file_name))
-            os.remove(os.path.join(output_ba_path, output_day_ba_file_name))
+            os.remove(os.path.join(output_basd_path, output_day_basd_file_name))
         except OSError as e:
             print(f"Error removing daily data")
 
