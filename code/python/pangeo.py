@@ -92,6 +92,7 @@ def basd_pangeo(run_object, run_name):
     ba = basd.init_bias_adjustment(
         obs_reference_data, sim_reference_data, sim_application_data,
         run_object.Variable, params,
+        lat_chunk_size=lat_chunk, lon_chunk_size=lon_chunk,
         temp_path=temp_intermediate_dir, periodic=True
     )
 
@@ -105,7 +106,6 @@ def basd_pangeo(run_object, run_name):
         init_output = ba, output_dir = output_ba_path,
         day_file = output_day_ba_file_name, month_file = output_mon_ba_file_name,
         clear_temp = True, encoding={run_object.Variable: encoding},
-        lat_chunk_size=lat_chunk, lon_chunk_size=lon_chunk,
         ba_attrs = global_daily_attributes, ba_attrs_mon = global_monthly_attributes, variable_attrs = variable_attributes
     )
 
