@@ -147,8 +147,8 @@ def create_tasrange_tasskew_CMIP(run_details, output_path):
                 tasskew_data = tasskew_array.to_dataset(name='tasskew')
 
                 # First and last day in data as string for file name
-                start_str = np.min(pd.DatetimeIndex(tas_data['time'].values)).strftime('%Y%m%d')
-                end_str = np.max(pd.DatetimeIndex(tas_data['time'].values)).strftime('%Y%m%d')
+                start_str = str(np.min(tas_data.time.dt.year.values))
+                end_str = str(np.max(tas_data.time.dt.year.values))
 
                 # If tasrange files don't already exist, create them
                 try:
@@ -264,8 +264,8 @@ def create_tasrange_tasskew_pangeo(output_path, esm, scenario, ensemble):
     os.makedirs(os.path.join(output_path), exist_ok=True)
 
     # First and last day in data as string for file name
-    start_str = np.min(pd.DatetimeIndex(tas_data['time'].values)).strftime('%Y%m%d')
-    end_str = np.max(pd.DatetimeIndex(tas_data['time'].values)).strftime('%Y%m%d')
+    start_str = str(np.min(tas_data.time.dt.year.values))
+    end_str = str(np.max(tas_data.time.dt.year.values))
 
     # If tasrange files don't already exist, create them
     try:
