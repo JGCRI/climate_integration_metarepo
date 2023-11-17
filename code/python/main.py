@@ -10,6 +10,7 @@ import os
 import socket
 import sys
 
+import argparse
 import dask
 from dask.distributed import (Client, LocalCluster)
 import numpy as np
@@ -18,9 +19,8 @@ import warnings
 
 if __name__ == "__main__":
 
-# Ignore non-helpful warnings
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    warnings.filterwarnings('ignore', category=FutureWarning)
+    # Set high recursion limit so Dask is able to do things like find size of objects
+    # sys.setrecursionlimit(3000)
 
 # Paths =======================================================================================================
     intermediate_path = 'intermediate'
@@ -28,14 +28,27 @@ if __name__ == "__main__":
 
 # Get Run Details =============================================================================================
 
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('task_id', type=int, help='The number of the current task (row of the run_manager_explicit_list.csv file)')
+    parser.add_argument('run_name', type=str, help='name of your experiment directory')
+    parser.add_argument('--warn', action='store_const', dest='warn',
+                        const=True, default=False,
+                        help='flag to print warnings in log .out file')
+    args = parser.parse_args()
+
     # Task index from SLURM array to run specific variable and model combinations
-    task_id = int(sys.argv[1])
+    task_id = args.task_id
     # Name of run directory
-    run_name = str(sys.argv[2])
+    run_name = args.run_name
     # Extract task details
     task_details = pd.read_csv(os.path.join(intermediate_path, run_name, 'run_manager_explicit_list.csv')).iloc[task_id]
     # Extract Dask settings
     dask_settings = pd.read_csv(os.path.join(input_path, run_name, 'dask_parameters.csv')).iloc[0]
+
+    # Ignore non-helpful warnings
+    if not args.warn:
+        dask.config.set({'logging.distributed': 'error'})
+        warnings.filterwarnings('ignore')
 
 # Check if using Pangeo =======================================================================================
 
@@ -78,8 +91,9 @@ if __name__ == "__main__":
         # Setting up dask.Client so that I can ssh into the dashboard
         port = client.scheduler_info()['services']['dashboard']
         host = client.run_on_scheduler(socket.gethostname)
-        print("If running remotely use the below command to ssh into dashboard")
+        print("If running remotely use the below command to ssh into dashboard from a local terminal session")
         print(f"ssh -N -L 8000:{host}:{port} <username>@<remote name>", flush=True)
+        print("Then use a browser to visit localhost:8000/ to view the dashboard.")
         print("If running locally, just visit the below link")
         print({client.dashboard_link})
 
