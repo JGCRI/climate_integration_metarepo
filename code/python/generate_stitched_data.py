@@ -61,12 +61,13 @@ def format_data_for_stitches(interped_data, experiment):
     interped_data['model'] = ''
     interped_data['ensemble'] = ''
     interped_data['experiment'] = experiment
+    interped_data['unit'] = 'degC change from avg over 1995~2014'
 
     # Convert to tas anomaly
     interped_data.value = interped_data.value - np.mean(interped_data.value[(interped_data.year <= 2014) & (interped_data.year >= 1995)])
 
     # Sort columns
-    formatted_traj = interped_data[['variable', 'experiment', 'ensemble', 'model', 'year', 'value']]
+    formatted_traj = interped_data[['variable', 'unit', 'experiment', 'ensemble', 'model', 'year', 'value']]
     
     # Return
     return formatted_traj
@@ -103,7 +104,8 @@ def generate_stitched(esm, variables, time_series, years, experiment,  output_pa
     # Format data into STITCHES format
     formatted_data = format_data_for_stitches(interped_data, experiment)
 
-    # Chunk data
+    # Smooth then Chunk data
+    formatted_data = fxp.calculate_rolling_mean(formatted_data, size=31)
     target_chunk = fxp.chunk_ts(formatted_data, n=chunk_sizes)
     target_data = fxp.get_chunk_info(target_chunk)
 
