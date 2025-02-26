@@ -111,6 +111,7 @@ def generate_stitched(esm, variables, time_series, years, experiment,  output_pa
 
     # Make Recipe
     stitches_recipe = get_recipe(target_data, model_data, variables)
+    stitches_recipe['stitching_id'] = experiment
 
     # Make gridded datasets
     outputs = stitches.gridded_stitching(output_path, stitches_recipe)
